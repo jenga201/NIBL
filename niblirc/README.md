@@ -37,7 +37,7 @@ docker compose up -d --build
 `niblirc/config/` and `data/niblirc/` are bind-mounted (relative to the repo
 root) to `/config` and `/data/botlists`. Ports 46571-46573 are published for DCC.
 
-Configuration: IRC identity, server, DCC ports and database connection are provided as environment variables (mapped in `docker-compose.yml`); `config/config.txt` keeps only static, non-secret settings. The DCC public address (`public_ip`) is optional — left blank, the bot resolves it from `https://ifconfig.me/ip` at startup. Set `IRC_PUBLIC_IP` to pin it.
+Configuration: IRC identity, server, DCC ports and database connection are provided as environment variables (mapped in `docker-compose.yml`); `config/config.txt` keeps only static, non-secret settings. The DCC public address (`public_ip`) is optional — left blank, the bot resolves it from `https://ipv4.icanhazip.com` (IPv4) at startup. Set `IRC_PUBLIC_IP` to pin it.
 
 ## Tests
 Unit tests (JUnit 5) run inside the Docker build stage and gate the image: if a test fails, the build fails and no new image is produced.
@@ -78,4 +78,4 @@ docker run -d \
 niblirc
 ```
 
-The public IP is resolved automatically from ifconfig.me; pass `-e PUBLIC_IP={publicIp}` to pin it.
+The public IP is resolved automatically from ipv4.icanhazip.com (IPv4); pass `-e PUBLIC_IP={publicIp}` to pin it.
