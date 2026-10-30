@@ -46,14 +46,17 @@ data/niblmysql/
 data/nibl.co.uk/
 data/niblirc/
 
-# swag's /config lives under data/swag/; its committed nginx/php proxy config is
-# tracked, but its live state (certs, Let's Encrypt accounts, geoip DB, fail2ban
-# DB) is ignored.
-data/swag/.donoteditthisfile.conf
-data/swag/keys/
-data/swag/etc/letsencrypt/
-data/swag/geoip2db/
-data/swag/fail2ban/*.sqlite3*
+# swag's /config lives under data/swag/ and is regenerated on container init;
+# only the two custom reverse-proxy confs below are versioned. Ignore everything
+# else it creates (nginx/php/www base config, samples, certs, Let's Encrypt
+# accounts, geoip DB, fail2ban DB).
+data/swag/*
+!data/swag/nginx/
+data/swag/nginx/*
+!data/swag/nginx/proxy-confs/
+data/swag/nginx/proxy-confs/*
+!data/swag/nginx/proxy-confs/nibl.co.uk.subdomain.conf
+!data/swag/nginx/proxy-confs/www.nibl.co.uk.subdomain.conf
 
 # ============================================================================
 # Legacy runtime dirs from the pre-monorepo layout (kept until migrated/removed)
