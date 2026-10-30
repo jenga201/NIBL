@@ -17,7 +17,7 @@ top-level `NIBL/docker-compose.yml`. Run from the repo root:
 docker compose up -d --build
 ```
 
-Runs the `niblcouk` container (Apache, port `${WEB_HTTP_PORT:-8080}` → 80) on the external `my-bridge` network, with the project's `var/` directory mounted at `/var/www/html/var`. Laravel's storage path is pointed at `var/`, so framework caches, sessions, and logs all live in that mount.
+Runs the `niblcouk` container (Apache, port `${WEB_HTTP_PORT:-8080}` → 80) on the external `my-bridge` network, with runtime data in `data/nibl.co.uk/` mounted at `/var/www/html/var` and daily logs in `logs/nibl.co.uk/` mounted at `/var/www/html/var/logs`. Laravel's storage path is `var/`.
 
 The Dockerfile is the only build pipeline:
 

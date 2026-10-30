@@ -24,37 +24,42 @@
 Thumbs.db
 
 # ============================================================================
-# nibl.co.uk (Laravel)
+# Source / build output
 # ============================================================================
 nibl.co.uk/node_modules/
 nibl.co.uk/vendor/
-nibl.co.uk/var/
 nibl.co.uk/.phpunit.result.cache
 nibl.co.uk/public/build/
 nibl.co.uk/public/hot/
 nibl.co.uk/public/storage
-
-# ============================================================================
-# niblirc (Java / ooinuza)
-# ============================================================================
 niblirc/target/
-niblirc/botlists/*
-!niblirc/botlists/.gitkeep
 
 # ============================================================================
-# niblmysql (runtime state)
+# Runtime logs (application log files, one subdir per project)
 # ============================================================================
+logs/
+
+# ============================================================================
+# Runtime data (one subdir per project, relative to the repo root)
+# ============================================================================
+data/niblmysql/
+data/nibl.co.uk/
+data/niblirc/
+
+# swag's /config lives under data/swag/; its committed nginx/php proxy config is
+# tracked, but its live state (certs, Let's Encrypt accounts, geoip DB, fail2ban
+# DB) is ignored.
+data/swag/.donoteditthisfile.conf
+data/swag/keys/
+data/swag/etc/letsencrypt/
+data/swag/geoip2db/
+data/swag/fail2ban/*.sqlite3*
+
+# ============================================================================
+# Legacy runtime dirs from the pre-monorepo layout (kept until migrated/removed)
+# ============================================================================
+nibl.co.uk/var/
 niblmysql/data/
 niblmysql/data.bak/
 niblmysql/host/
 niblmysql/backup/
-
-# ============================================================================
-# letsencrypt / swag (live TLS, Let's Encrypt and generated state)
-# ============================================================================
-letsencrypt/keys/
-letsencrypt/log/
-letsencrypt/.donoteditthisfile.conf
-letsencrypt/etc/letsencrypt/
-letsencrypt/geoip2db/
-letsencrypt/fail2ban/*.sqlite3*

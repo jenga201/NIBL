@@ -6,9 +6,9 @@ into a single Git repository deployed as one Docker Compose stack:
 | Project | Directory | Service | Purpose |
 |---|---|---|---|
 | nibl.co.uk | `nibl.co.uk/` | `niblcouk` | Public website — Laravel 13 (PHP 8.5) on Apache, Tailwind + Vite frontend. |
-| niblirc | `niblirc/` | `ooinuza` | "ooinuza" IRC bot for `#nibl`; collects XDCC pack listings into MySQL and handles DCC. Java 21 / Maven / PircBotX. |
+| niblirc | `niblirc/` | `niblirc` | "niblirc" IRC bot for `#nibl`; collects XDCC pack listings into MySQL and handles DCC. Java 21 / Maven / PircBotX. |
 | niblmysql | `niblmysql/` | `niblmysql` | Common MySQL 8 back end shared by the two apps above. |
-| swag | `letsencrypt/` | `swag` | linuxserver/swag — Let's Encrypt TLS reverse proxy for `nibl.co.uk`. |
+| swag | `data/swag/` | `swag` | linuxserver/swag — Let's Encrypt TLS reverse proxy for `nibl.co.uk`. |
 
 Everything is orchestrated by the single **`docker-compose.yml`** at the repo
 root and configured by a single **`.env`** (copy `.env.example`).
@@ -35,7 +35,7 @@ docker compose up -d --build
 ```
 
 `docker compose up` starts everything in dependency order via `depends_on`:
-`niblmysql` (waits healthy) → `ooinuza` + `niblcouk` → `swag`. The one-shot
+`niblmysql` (waits healthy) → `niblirc` + `niblcouk` → `swag`. The one-shot
 `mysql-init` sidecar provisions the application DB user on every start and exits.
 
 ## Configuration
@@ -43,9 +43,9 @@ docker compose up -d --build
 All runtime configuration lives in the top-level `.env` (gitignored), templated
 by **`.env.example`** — every variable is documented and grouped by subsystem:
 
-- `SQL_*` — shared MySQL credentials and connection coordinates.
+- `SQL_*` — shared MySQL credentials and connection coordinates (database is `ooinuza`).
 - `MYSQL_ROOT_PASSWORD`, `NIBLMYSQL_*` — MySQL container and host binding.
-- `IRC_*` — niblirc/ooinuza identity, server, and DCC settings.
+- `IRC_*` — niblirc identity, server, and DCC settings.
 - `WEB_*` — nibl.co.uk Laravel app settings.
 - `SWAG_*` — swag / Let's Encrypt reverse-proxy settings.
 
@@ -63,14 +63,24 @@ NIBL/
 ├── nibl.co.uk/        # Laravel website (Dockerfile builds PHP + Node image)
 ├── niblirc/           # Java IRC bot (Dockerfile builds the fat jar)
 ├── niblmysql/         # MySQL schema, migrations, and scripts
-├── letsencrypt/       # swag /config (TLS reverse-proxy config)
-├── scripts/           # deploy.sh (single-command production deploy)
-└── README.md
+├── data/              # runtime host data (gitignored), one subdir per project
+│   ├── niblmysql/     #   MySQL datadir
+│   ├── nibl.co.uk/    #   Laravel var/ (cache, sessions, app data)
+│   ├── niblirc/       #   bot lists
+│   └── swag/          #   swag /config (committed proxy config + live certs)
+├── logs/              # application logs (gitignored), one subdir per project
+│   ├── niblmysql/     #   MySQL error log
+│   ├── nibl.co.uk/    #   Laravel daily logs
+│   ├── niblirc/       #   bot rolling log
+│   └── swag/          #   nginx/php/fail2ban logs
+└── scripts/           # deploy.sh (single-command production deploy)
 ```
 
-Data directories (MySQL data, Laravel `var/`, DCC botlists) are bind-mounted
-**relative to the repo checkout** and gitignored, so the whole stack is portable
-and self-contained.
+All runtime data and application logs live under the top-level `data/` and
+`logs/` directories (relative to the repo root) and are gitignored, so the whole
+stack is portable and self-contained. The exception is the swag proxy config that
+lives under `data/swag/` (nginx proxy-confs, site-confs): it is committed so TLS
+routing is versioned.
 
 ## Deploying to production
 

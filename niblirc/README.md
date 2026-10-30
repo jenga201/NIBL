@@ -1,5 +1,5 @@
 # Intro
-This is the ooinuza project for #nibl
+This is the niblirc project for #nibl
 
 # Setup
 Install Mysql Docker Container
@@ -27,14 +27,14 @@ GRANT ALL PRIVILEGES ON 'ooinuza'.* TO 'ooinuza'@'172.18.0.%';
 FLUSH PRIVILEGES;
 ```
 ## Run with Docker Compose
-The `ooinuza` service is defined in the top-level `NIBL/docker-compose.yml`; there
+The `niblirc` service is defined in the top-level `NIBL/docker-compose.yml`; there
 is no per-project compose file (`niblmysql` starts first via `depends_on`). Run
 from the repo root:
 ```
 cp .env.example .env   # set IRC_BOT_NAME, IRC_SERVER, IRC_PORT, IRC_DCC_PORTS, etc.
 docker compose up -d --build
 ```
-`niblirc/config/` and `niblirc/botlists/` are bind-mounted (relative to the repo
+`niblirc/config/` and `data/niblirc/` are bind-mounted (relative to the repo
 root) to `/config` and `/data/botlists`. Ports 46571-46573 are published for DCC.
 
 Configuration: IRC identity, server, DCC ports and database connection are provided as environment variables (mapped in `docker-compose.yml`); `config/config.txt` keeps only static, non-secret settings. The DCC public address (`public_ip`) is optional — left blank, the bot resolves it from `https://ifconfig.me/ip` at startup. Set `IRC_PUBLIC_IP` to pin it.
@@ -75,7 +75,7 @@ docker run -d \
 -e DB_NAME=ooinuza \
 -v "$(pwd)/config":/config:rw \
 -v "$(pwd)/botlists":/data/botlists:rw \
-ooinuza
+niblirc
 ```
 
 The public IP is resolved automatically from ifconfig.me; pass `-e PUBLIC_IP={publicIp}` to pin it.
