@@ -39,8 +39,8 @@ the services of the one root compose file.
 **Locally:**
 
 - `ssh` and `scp` on `PATH`, the repo-root `.env` populated with production
-  secrets, and `niblmysql/backup/*.sql.gz` dumps to restore from (all copied to
-  the host on the first deploy only).
+  secrets, and `niblmysql/backup/*.sql.gz` dumps to restore from (the `.env` is
+  copied on the first deploy; backups are uploaded when the host has none).
 
 ## Configuration
 
@@ -62,7 +62,7 @@ Edit these at the top of the script before the first run:
 | **0 — Preflight** | Checks local `ssh`/`scp` exist and Docker is reachable on the host. |
 | **1 — Remote dir + network** | `mkdir -p /opt/NIBL`; creates the `my-bridge` network if missing. |
 | **2 — Clone/pull the repo** | Clones `NIBL` if `.git` is missing, otherwise `git fetch` → `checkout` → `reset --hard origin/<branch>`. |
-| **3 — Seed secrets & backups (first checkout)** | On a fresh clone only, copies the local repo-root `.env` to `/opt/NIBL/.env` (then `chmod 600`) and uploads `niblmysql/backup/` so `migrate.sh` can restore an empty database; existing checkouts keep their copy. Then verifies `/opt/NIBL/.env` exists and is non-empty. |
+| **3 — Seed secrets & backups** | Copies the local repo-root `.env` to `/opt/NIBL/.env` (then `chmod 600`) on a fresh clone only, and uploads `niblmysql/backup/` only when the host has no backups yet (so `migrate.sh` can restore an empty database). Then verifies `/opt/NIBL/.env` exists and is non-empty. |
 | **4 — Build + start the stack** | `docker compose build --pull` then `up -d`. `depends_on` sequences the services (MySQL healthy → web/irc → swag); the one-shot `mysql-init` sidecar provisions the app DB user and exits. Waits for `niblmysql` healthy, removes the one-shot sidecar, then runs `niblmysql/migrate.sh`. |
 | **5 — Verify** | Lists container states, then curls `SITE_URL` and `API_URL` through swag (`--resolve` to `127.0.0.1`); requires both to return `200`. |
 
