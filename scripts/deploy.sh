@@ -13,9 +13,10 @@
 #
 # What it does (does NOT git commit/push — you do that first and push):
 #   1. Preflight: ssh/scp present locally, Docker reachable on the host.
-#   2. Ensure /opt/NIBL and the my-bridge network exist.
+#   2. Ensure /opt/NIBL exists.
 #   3. Clone (or pull) the single NIBL repository into /opt/NIBL.
-#   4. Copy local .env on first checkout; seed MySQL backups if the host has none.
+#   4. Seed .env (first checkout) and MySQL backups (if missing); enable Docker
+#      IPv6 (first checkout, via sudo); create the my-bridge network.
 #   5. docker compose build + up for the whole stack.
 #   6. Wait for niblmysql healthy, clean up one-shot sidecars, run migrations.
 #   7. Verify: container states + an HTTP check through swag.
@@ -80,16 +81,14 @@ ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" 'docker version >/dev/null 2>&1' \
   || fail "docker is not reachable on $REMOTE_SSH"
 
 # ---------------------------------------------------------------------------
-# Step 1 — remote dir + network
+# Step 1 — remote dir
 # ---------------------------------------------------------------------------
 
-say "Remote directory and my-bridge network"
+say "Remote directory"
 ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" 'bash -s' "$REMOTE_DIR" <<'REMOTE_EOF'
 set -euo pipefail
 root=$1
 mkdir -p "$root"
-docker network ls --format '{{.Name}}' | grep -qx my-bridge \
-  || docker network create -d bridge my-bridge
 REMOTE_EOF
 
 # ---------------------------------------------------------------------------
@@ -155,7 +154,18 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Step 4 — build + start the whole stack
+# Step 4 — enable Docker IPv6 on a first checkout (sudo)
+# ---------------------------------------------------------------------------
+
+if [ "$FIRST_CHECKOUT" = "true" ]; then
+  say "Enabling Docker IPv6 on the host (enter the sudo password when prompted)"
+  ssh -t "${SSH_OPTS[@]}" "$REMOTE_SSH" \
+    "sudo bash '$REMOTE_DIR/scripts/setup-docker-ipv6.sh'" \
+    || fail "Docker IPv6 setup failed"
+fi
+
+# ---------------------------------------------------------------------------
+# Step 5 — build + start the whole stack
 # ---------------------------------------------------------------------------
 
 say "Build + start the stack (niblmysql -> niblirc + niblcouk -> swag)"
@@ -164,6 +174,11 @@ set -euo pipefail
 cd "$1"
 mkdir -p data/niblmysql data/nibl.co.uk data/niblirc data/swag logs/niblmysql logs/nibl.co.uk logs/niblirc logs/swag
 chown -R 1000:1000 data/niblmysql logs/niblmysql
+
+# Create the shared external network now (after Docker IPv6 is enabled above) so
+# it comes up dual-stack.
+docker network ls --format '{{.Name}}' | grep -qx my-bridge \
+  || docker network create -d bridge my-bridge
 
 docker compose build --pull
 # `up -d` starts the whole stack; depends_on (niblmysql healthy) sequences it,
@@ -221,7 +236,7 @@ docker ps --format '  {{.Names}}\t{{.Status}}'
 REMOTE_EOF
 
 # ---------------------------------------------------------------------------
-# Step 5 — verify
+# Step 6 — verify
 # ---------------------------------------------------------------------------
 
 say "Verifying"
