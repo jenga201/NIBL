@@ -20,8 +20,9 @@ pulls the repository down to the host.
 Everything lives under **`/opt/NIBL/`** on the production host:
 
 - The single `NIBL` Git repository is cloned (or pulled) into `/opt/NIBL`.
-- `/opt/NIBL/.env` holds the production secrets (gitignored — created on the host
-  from `.env.example`, never deployed by this script).
+- `/opt/NIBL/.env` holds the production secrets (gitignored). On the **first**
+  deployment it is copied up from the local repo-root `.env`; later deploys keep
+  the host's copy untouched.
 
 The three runtime projects and the TLS gateway are no longer separate repos or
 separate compose files — they are the subdirectories of the one repository and
@@ -32,12 +33,13 @@ the services of the one root compose file.
 **On the host:**
 
 - Docker + Compose v2, and `curl` (for the final HTTP check).
-- `/opt/NIBL/.env` populated with production secrets (the script aborts if it is
-  missing or empty).
 - SSH reachability as the `REMOTE_SSH` user, with Docker permissions.
 - Read access to the `NIBL` Git repository (HTTPS clone by default).
 
-**Locally:** `ssh` on `PATH`.
+**Locally:**
+
+- `ssh` and `scp` on `PATH`, and the repo-root `.env` populated with production
+  secrets (copied to the host on the first deploy only).
 
 ## Configuration
 
@@ -56,19 +58,22 @@ Edit these at the top of the script before the first run:
 
 | Step | What it does |
 |---|---|
-| **0 — Preflight** | Checks local `ssh` exists and Docker is reachable on the host. |
-| **1 — Remote dir + network + secrets** | `mkdir -p /opt/NIBL`; creates the `my-bridge` network if missing; verifies `/opt/NIBL/.env` exists and is non-empty. |
+| **0 — Preflight** | Checks local `ssh`/`scp` exist and Docker is reachable on the host. |
+| **1 — Remote dir + network** | `mkdir -p /opt/NIBL`; creates the `my-bridge` network if missing. |
 | **2 — Clone/pull the repo** | Clones `NIBL` if `.git` is missing, otherwise `git fetch` → `checkout` → `reset --hard origin/<branch>`. |
-| **3 — Build + start the stack** | `docker compose build --pull` then `up -d`. `depends_on` sequences the services (MySQL healthy → web/irc → swag); the one-shot `mysql-init` sidecar provisions the app DB user and exits. Waits for `niblmysql` healthy, removes the one-shot sidecar, then runs `niblmysql/migrate.sh`. |
-| **4 — Verify** | Lists container states, then curls `SITE_URL` and `API_URL` through swag (`--resolve` to `127.0.0.1`); requires both to return `200`. |
+| **3 — Seed secrets (first checkout)** | On a fresh clone only, copies the local repo-root `.env` to `/opt/NIBL/.env` and `chmod 600`; existing checkouts keep their `.env`. Then verifies `/opt/NIBL/.env` exists and is non-empty. |
+| **4 — Build + start the stack** | `docker compose build --pull` then `up -d`. `depends_on` sequences the services (MySQL healthy → web/irc → swag); the one-shot `mysql-init` sidecar provisions the app DB user and exits. Waits for `niblmysql` healthy, removes the one-shot sidecar, then runs `niblmysql/migrate.sh`. |
+| **5 — Verify** | Lists container states, then curls `SITE_URL` and `API_URL` through swag (`--resolve` to `127.0.0.1`); requires both to return `200`. |
 
 ## Idempotency & safety notes
 
 - `git reset --hard origin/<branch>` makes the remote working tree exactly match
   the branch; any uncommitted changes on the host are discarded. Never edit code
   directly on the production host.
-- Gitignored live state (MySQL `data/`, swag `keys/`/`log/`/`etc/letsencrypt/`,
-  and `.env`) is never in the repository, so it survives `git pull` untouched.
+- Gitignored live state (MySQL `data/`, swag `keys/`/`log/`/`etc/letsencrypt/`)
+  is never in the repository, so it survives `git pull` untouched.
+- `.env` is also gitignored and is written to the host only on the first
+  checkout, so later deploys never overwrite the host's production secrets.
 - `migrate.sh` is idempotent (tracks applied filenames in
   `ooinuza.schema_migrations`) and restores the newest `niblmysql/backup/`
   dump only if `ooinuza` is empty.
