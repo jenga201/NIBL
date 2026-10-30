@@ -12,19 +12,19 @@
 # apply migrations, and verify over HTTPS.
 #
 # What it does (does NOT git commit/push — you do that first and push):
-#   1. Preflight: ssh present locally, Docker reachable on the host.
-#   2. Ensure /opt/NIBL, the my-bridge network, and /opt/NIBL/.env exist.
+#   1. Preflight: ssh/scp present locally, Docker reachable on the host.
+#   2. Ensure /opt/NIBL and the my-bridge network exist.
 #   3. Clone (or pull) the single NIBL repository into /opt/NIBL.
-#   4. docker compose build + up for the whole stack.
-#   5. Wait for niblmysql healthy, clean up one-shot sidecars, run migrations.
-#   6. Verify: container states + an HTTP check through swag.
+#   4. On a first (fresh) checkout, copy the local .env to /opt/NIBL/.env.
+#   5. docker compose build + up for the whole stack.
+#   6. Wait for niblmysql healthy, clean up one-shot sidecars, run migrations.
+#   7. Verify: container states + an HTTP check through swag.
 #
-# Prerequisites on the host:
-#   - Docker + Compose v2, and curl for the verification check.
-#   - /opt/NIBL/.env already populated with production secrets (copied from
-#     .env.example — it is gitignored and never deployed by this script).
-#   - SSH reachability as REMOTE_SSH with Docker permissions (docker group).
-#   - Read access to the NIBL Git repository (HTTPS clone by default).
+# Prerequisites:
+#   - Locally: the gitignored .env at the repo root (copied to the host only on
+#     the first deploy; after that /opt/NIBL/.env is authoritative on the host).
+#   - On the host: Docker + Compose v2 and curl; SSH reachability as REMOTE_SSH
+#     with Docker permissions; read access to the NIBL Git repository (HTTPS).
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
@@ -42,6 +42,11 @@ SSH_USE_AGENT_FORWARDING="false"
 REMOTE_DIR="/opt/NIBL"
 REPO_URL="https://github.com/jenga201/NIBL.git"
 REMOTE_BRANCH="main"   # production branch; merge develop -> main for releases
+
+# Paths to the shared .env (the gitignored secrets file).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOCAL_ENV_FILE="$SCRIPT_DIR/../.env"      # on the machine running this script
+REMOTE_ENV_FILE="$REMOTE_DIR/.env"        # on the production host
 
 # HTTP verification targets (proxied through swag).
 SITE_HOST="www.nibl.co.uk"
@@ -66,26 +71,34 @@ fail() { printf '\n\033[1;31mERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
 say "Preflight"
 command -v ssh >/dev/null || fail "ssh not found"
+command -v scp >/dev/null || fail "scp not found"
 ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" 'docker version >/dev/null 2>&1' \
   || fail "docker is not reachable on $REMOTE_SSH"
 
 # ---------------------------------------------------------------------------
-# Step 1 — remote dir + network + secrets
+# Step 1 — remote dir + network
 # ---------------------------------------------------------------------------
 
-say "Remote directory, my-bridge network, and secrets"
+say "Remote directory and my-bridge network"
 ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" 'bash -s' "$REMOTE_DIR" <<'REMOTE_EOF'
 set -euo pipefail
 root=$1
 mkdir -p "$root"
 docker network ls --format '{{.Name}}' | grep -qx my-bridge \
   || docker network create -d bridge my-bridge
-[ -s "$root/.env" ] || { echo "ERROR: $root/.env is missing or empty — create it from .env.example first."; exit 1; }
 REMOTE_EOF
 
 # ---------------------------------------------------------------------------
 # Step 2 — clone/pull the single repository
 # ---------------------------------------------------------------------------
+
+# A fresh checkout is one where the repository does not yet exist on the host.
+# The local .env is only copied up in that case (and never overwritten after).
+if ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" "[ -d '$REMOTE_DIR/.git' ]"; then
+  FIRST_CHECKOUT=false
+else
+  FIRST_CHECKOUT=true
+fi
 
 say "Clone/pull the NIBL repository"
 ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" 'bash -s' \
@@ -105,7 +118,24 @@ fi
 REMOTE_EOF
 
 # ---------------------------------------------------------------------------
-# Step 3 — build + start the whole stack
+# Step 3 — seed secrets on a first checkout
+# ---------------------------------------------------------------------------
+
+if [ "$FIRST_CHECKOUT" = "true" ]; then
+  say "First checkout — copying local .env to the host"
+  [ -s "$LOCAL_ENV_FILE" ] || fail "local .env is missing or empty: $LOCAL_ENV_FILE"
+  scp -q -o BatchMode=yes -o ConnectTimeout=15 "$LOCAL_ENV_FILE" "$REMOTE_SSH:$REMOTE_ENV_FILE"
+  ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" "chmod 600 '$REMOTE_ENV_FILE'"
+else
+  say "Existing checkout — keeping the host's .env"
+fi
+
+# The .env must exist before docker compose runs (just copied, or pre-existing).
+ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" "[ -s '$REMOTE_ENV_FILE' ]" \
+  || fail "$REMOTE_ENV_FILE is missing or empty"
+
+# ---------------------------------------------------------------------------
+# Step 4 — build + start the whole stack
 # ---------------------------------------------------------------------------
 
 say "Build + start the stack (niblmysql -> niblirc + niblcouk -> swag)"
@@ -171,7 +201,7 @@ docker ps --format '  {{.Names}}\t{{.Status}}'
 REMOTE_EOF
 
 # ---------------------------------------------------------------------------
-# Step 4 — verify
+# Step 5 — verify
 # ---------------------------------------------------------------------------
 
 say "Verifying"
