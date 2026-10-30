@@ -1,0 +1,83 @@
+###IRC###
+# Values for bot_name, bot_pass, server, port, public_ip and dcc_ports are
+# supplied via environment variables (see docker-compose.yml / .env.example)
+# and are intentionally left blank here.
+#name of the bot
+bot_name =
+#nickserv password
+bot_pass =
+#servers to join space seperated
+server =
+#port
+port =
+#ssl true/false (make sure port is good)
+ssl = true
+#channels to join no # space separated :passwords
+channels = nibl
+admin_channel = frog
+#name before the @
+login = bot
+#0 trace, 1 normal, 2 error
+loglevel = 0
+#download directory
+download_dir = /data/botlists/
+#dcc_timeout
+dcc_timeout = 120000
+#prints messages to standard output true/false
+verbose = false
+#changes nick if already used
+auto_nick_change = true
+# DCC public address. Optional: left blank it is resolved from ifconfig.me at
+# startup; set OOINUZA_PUBLIC_IP (exposed as PUBLIC_IP) to pin it.
+public_ip =
+# DCC ports
+dcc_ports =
+
+###BOT###
+# accept dcc chat requests
+bot_dcc_chat_accept = false
+# number of request to handle at the same time
+bot_conc_request = 10
+# number of admins that can be logged on at the same time
+bot_conc_admin = 3
+
+###Commands### getName() = enabled/disabled (only need the string returned by getName())
+anidb = disabled
+help = disabled
+request = disabled
+money = disabled
+search = disabled
+latest = disabled
+nibl++ = disabled
+rules = disabled
+dildo = disabled
+roulette = disabled
+
+###Services### getName() = start/stop
+packlist = stop
+update_pack_list_time = 1800
+connection = start
+reconnect_check_time = 60
+check_name_registered = start
+topic_manager = start
+anidb_keep_alive = start
+anidb_link = http://anidb.net/api/animetitles.xml.gz
+scheduler = start
+
+###Database###
+# Values for db, db_user, db_pass, db_server, db_port and db_name are supplied
+# via environment variables (see docker-compose.yml / .env.example) and are
+# intentionally left blank here.
+# what database used mysql postgresql...
+db =
+# user for database
+db_user =
+# password for database
+db_pass =
+# server
+db_server =
+#db_server = 127.0.0.1
+# port
+db_port =
+# name of database
+db_name =

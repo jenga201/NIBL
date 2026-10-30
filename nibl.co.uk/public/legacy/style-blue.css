@@ -1,0 +1,342 @@
+body {
+	padding: 8px;
+	background:#a88e51;
+	font-family: sans-serif;
+	font-size: 15px;
+	width: 800px;
+	margin: 0 auto;
+}
+
+h1 { font-size: 2em; }
+
+input, select {
+	border: 1px solid #6c8ccb;
+	background-color: #cfdeff;
+	-khtml-border-radius: 4px;
+	-moz-border-radius: 4px;
+}
+
+div#wrapper {
+	-khtml-border-radius: 4px;
+	-moz-border-radius: 4px;
+	background-color: #6a9afb;
+}
+
+div#wrapper a { color: /*#c39b3c*/ #cca13e; text-decoration:none; }
+div#wrapper a:visited { color: #a88e51; }
+div#wrapper a:hover { color: #ccac62; text-decoration: underline; }
+
+div#header {
+	/*height: 1em;*/
+	dbackground-color: /*#ccc*/ #6a9afb;
+	dheight: 2em;
+	d-khtml-border-radius: 4px;
+	d-moz-border-radius: 4px;
+	dmargin-bottom: 0.25em;
+}
+
+div#header h1 {
+	float: left;
+	padding: 0 0.3em 0 0.25em;
+	height: 0.95em; /* konq 1px bugfix */
+}
+
+div#header h3 {
+	float: right;
+	margin: 0.5em;
+	color: #a88e51;
+}
+div#header h3 a { color: #a88e51; }
+div#header a:hover { text-decoration: none; }
+
+
+div#header ul#navigation li {
+	float: left;
+	ddisplay: inline-block; /* i'd love to use this, but i'm just too kind to IE! */
+	padding-right: 0.3em;
+}
+
+div#header ul#navigation li a {
+	background-color: /*#eee*/ /*#b8b4a8*/ /*#98bafd*/ #91b0f2;
+	display: block;
+	padding: 0.5em 1em;
+	-khtml-border-top-left-radius: 9px;
+	-khtml-border-top-right-radius: 9px;
+	d-khtml-border-bottom-right-radius: 9px;
+	-moz-border-radius-topleft: 9px;
+	-moz-border-radius-topright: 9px;
+	border-right: 1px solid /*#999*/ #6c8ccb;
+	border-left: 1px solid /*#999*/ #6c8ccb;
+}
+
+div#header ul#navigation li a.selected {
+	background-color: #98bafd;
+}
+div#header ul#navigation li a:hover {
+	background-color: #98bafd;
+}
+
+div#content {
+	clear:both;
+	-khtml-border-radius: 4px;
+	-moz-border-radius: 4px;
+	background-color: #98bafd;
+	padding: 0.25em;
+}
+div#content_edge {
+	clear:both;
+	-khtml-border-radius: 4px;
+	-moz-border-radius: 4px;
+	background-color: #98bafd;
+}
+
+#div.news > div.newsitem > h2.title,div.timestamp,div.text
+
+div.news {
+}
+
+div.news div.newsitem {
+padding: 0.25em 0;
+}
+
+div.news div.newsitem div.newsheader {
+border-bottom: 1px dotted /*#ccc*/ #6c8ccb;
+margin-bottom: 0.25em;
+background-color: #abc6ff;
+padding: 0.15em 0.25em;
+-khtml-border-top-left-radius: 4px;
+-khtml-border-top-right-radius: 4px;
+-moz-border-radius-topleft: 4px;
+-moz-border-radius-topright: 4px;
+}
+div.news div.newsitem div.newsheader h2.title {
+display: inline;
+margin-right: 1em;
+}
+div.news div.newsitem div.newsheader h2.title a.newsanchor {
+font-size: 0.8em;
+margin-left: 0.25em;
+display:none
+}
+div.news div.newsitem div.newsheader:hover h2.title a.newsanchor {
+display:inline;
+}
+div.news div.newsitem div.newsheader div.timestamp {
+float:right;
+}
+div.news div.newsitem div.text {
+padding: 0 0.25em;
+}
+div.news div.newsitem div.newsfooter {
+font-size: 0.9em;
+text-align: right;
+font-style: italic;
+padding: 0 0.25em;
+margin-top: 0.25em;
+border-top: 1px dotted /*#ccc*/ #6c8ccb;
+}
+
+div.searchbox {
+	padding: 0.5em 0.25em;
+	text-align: center;
+}
+div.searchbox input.query {
+	vertical-align: middle;
+	height: 16px;
+	padding: 1px 0;
+	width: /*3*/400px;
+}
+div.searchbox input.submit {
+	vertical-align: top;
+	height: 20px;
+        cursor: pointer;
+        cursor: hand;
+}
+
+div.bots {
+dborder: 1px solid #ccc;
+-khtml-border-radius: 4px;
+-moz-border-radius: 4px;
+background-color: #abc6ff;
+}
+div.bots div.botsheader {
+padding: 0.5em 0.45em;
+text-align: right;
+}
+div.bots div.botsheader div.title {
+float: left;
+}
+div.bots div.bot {
+	clear: both;
+	border-top: 1px dotted #6c8ccb;
+	DDD-khtml-border-radius: 4px;
+}
+div.bots div.bot div.expand {
+	float: left;
+}
+div.bots div.bot div.expand a {
+	display: block;
+	width: 1em;
+	padding: 0.25em;
+	text-align: center;
+	d-khtml-border-radius: 4px;
+}
+div.bots div.bot.last div.expand a {
+	-khtml-border-bottom-left-radius: 4px;
+	-moz-border-radius-bottomleft: 4px;
+}
+div.bots div.bot div.expand a:hover {
+	background-color: /*white*/ #cfdeff;
+	text-decoration: none !important;
+}
+div.bots div.bot div.name {
+}
+div.bots div.bot div.name a {
+	Dbackground-color: #eee;
+	padding: 0.25em;
+	display: block;
+	d-khtml-border-radius: 4px;
+	background-color: #bdd2ff;
+	-khtml-border-top-left-radius: 4px;
+	-khtml-border-top-right-radius: 4px;
+	-moz-border-radius-topleft: 4px;
+	-moz-border-radius-topright: 4px;
+}
+div.bots div.bot.last div.name a {
+	-khtml-border-bottom-left-radius: 4px;
+	-khtml-border-bottom-right-radius: 4px;
+	-moz-border-radius-bottomleft: 4px;
+	-moz-border-radius-bottomright: 4px;
+}
+div.bots div.bot div.name a:hover {
+	background-color: /*white*/ #cfdeff;
+}
+div.bots div.bot div.list {
+	display: none;
+	DDDpadding: 0.25em 0.25em 0.25em 1.5em;
+	padding-left: 1.5em;
+	border-top: 1px dotted #6c8ccb;
+	DDDbackground-color: #a5bff6;
+}
+div.bots div.bot.last div.list {
+	-khtml-border-bottom-left-radius: 4px;
+	-khtml-border-bottom-right-radius: 4px;
+	-moz-border-radius-bottomleft: 4px;
+	-moz-border-radius-bottomright: 4px;
+}
+div.bots div.bot div.list div.padded {
+	padding: 0.25em 0.25em 0.25em 0;
+}
+
+div.bots table.botlist {
+	width: 100%;
+	font-size: 0.9em;
+}
+div.bots table.botlist tr td {
+	background-color: #abc6ff;
+}
+div.bots table.botlist tr:hover td {
+	background-color: /*white*/ #cfdeff;
+	cursor: pointer;
+}
+div.bots table.botlist th {
+	padding: 0.5em/* 0.25em*/;
+	Dbackground-color: #ccc;
+	background-color: #90b7ff/*#99bdff/*#96b8fb*//*#6a9afb*/;
+}
+div.bots table.botlist th a.arrow {
+}
+div.bots table.botlist th a.arrow.selected {
+	text-shadow: cyan 1px 1px 0px;
+}
+div.bots table.botlist td {
+	padding: 0.35em 0.25em;
+	Dbackground-color: #eee;
+	DDDbackground-color: #a5bff6;
+	word-wrap: break-word;
+	font-size: 0.9em;
+}
+div.bots table.botlist td.botname {
+	dwidth: 10%;
+	text-align: center;
+	white-space: nowrap;
+}
+div.bots table.botlist td.botname a.link {
+	visibility: hidden;
+}
+div.bots table.botlist td.botname:hover a.link {
+	visibility: visible;
+}
+div.bots table.botlist tr.last td.botname {
+	-khtml-border-bottom-left-radius: 4px;
+	-moz-border-radius-bottomleft: 4px;
+}
+div.bots table.botlist td.botchannel {
+	dwidth: 10%;
+	text-align: center;
+}
+div.bots table.botlist td.packnumber {
+	dwidth: 10%;
+	text-align: center;
+}
+div.bots table.botlist td.filesize {
+	dwidth: 15%;
+	text-align: center;
+}
+div.bots table.botlist td.filename {
+}
+div.bots table.botlist td.filename a.link {
+	visibility: hidden;
+}
+div.bots table.botlist td.filename:hover a.link {
+	visibility: visible;
+}
+div.bots table.botlist tr.last td.filename {
+	-khtml-border-bottom-right-radius: 4px;
+	-moz-border-radius-bottomright: 4px;
+}
+
+div#footer {
+clear: both;
+dmargin-top: 0.5em;
+margin: 0.35em 0.25em;
+font-size: 0.9em;
+dpadding-top: 0.5em;
+dborder-top: 1px dotted #ccc;
+}
+div#footer select.themes {
+	dborder: 1px solid black;
+	dbackground-color: white;
+	height: 1.75em;
+	font-size: 0.6em;
+	dmargin-top: -0.5em;
+	vertical-align:top;
+}
+
+p.error_box {
+	padding: 1em;
+}
+
+.nowrap {
+	white-space: nowrap;
+}
+
+.hidden {
+	display: none;
+}
+
+.left {
+	float: left;
+}
+
+.right {
+	float: right;
+}
+
+/*** PAYPAL *******************************************************************/
+
+.paypal {
+    border: 0;
+    background: transparent;
+}
+

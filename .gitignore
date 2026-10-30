@@ -1,0 +1,60 @@
+# ============================================================================
+# Secrets — never commit
+# ============================================================================
+.env
+.env.*
+!.env.example
+
+# ============================================================================
+# IDEs and editors
+# ============================================================================
+.idea/
+.vscode/
+.project
+.buildpath
+.classpath
+.settings/
+*.iml
+*.launch
+
+# ============================================================================
+# OS junk
+# ============================================================================
+.DS_Store
+Thumbs.db
+
+# ============================================================================
+# nibl.co.uk (Laravel)
+# ============================================================================
+nibl.co.uk/node_modules/
+nibl.co.uk/vendor/
+nibl.co.uk/var/
+nibl.co.uk/.phpunit.result.cache
+nibl.co.uk/public/build/
+nibl.co.uk/public/hot/
+nibl.co.uk/public/storage
+
+# ============================================================================
+# niblirc (Java / ooinuza)
+# ============================================================================
+niblirc/target/
+niblirc/botlists/*
+!niblirc/botlists/.gitkeep
+
+# ============================================================================
+# niblmysql (runtime state)
+# ============================================================================
+niblmysql/data/
+niblmysql/data.bak/
+niblmysql/host/
+niblmysql/backup/
+
+# ============================================================================
+# letsencrypt / swag (live TLS, Let's Encrypt and generated state)
+# ============================================================================
+letsencrypt/keys/
+letsencrypt/log/
+letsencrypt/.donoteditthisfile.conf
+letsencrypt/etc/letsencrypt/
+letsencrypt/geoip2db/
+letsencrypt/fail2ban/*.sqlite3*

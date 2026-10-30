@@ -1,0 +1,13 @@
+.git/
+.idea/
+.vscode/
+node_modules/
+*.log
+.env
+var/
+public/build/
+public/hot/
+tests/
+vendor/
+Dockerfile
+docker-compose.yml
