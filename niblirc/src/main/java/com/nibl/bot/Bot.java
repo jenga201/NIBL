@@ -97,7 +97,10 @@ public class Bot {
         cb.setFinger("Watch where you are poking");
         cb.setLogin(this.getProperty("login"));
         cb.setAutoReconnect(true);
-        cb.setNickservPassword(this.getProperty("bot_pass")); // TODO test if this works
+        String botPass = this.getProperty("bot_pass");
+        if (botPass != null && !botPass.isBlank()) {
+            cb.setNickservPassword(botPass);
+        }
         cb.setAutoReconnect(true);
         // Set server information
         cb.addServer(this.getProperty("server"), Integer.parseInt(this.getProperty("port")));

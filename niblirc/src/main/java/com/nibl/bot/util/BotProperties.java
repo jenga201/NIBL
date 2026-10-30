@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.regex.Matcher;
 
@@ -26,17 +27,13 @@ public class BotProperties extends Properties {
 	}
 
 	/**
-	 * Environment variables override file properties: property key "db_pass"
-	 * is overridden by env var "DB_PASS" when present. Values are never logged.
+	 * Environment variables define or override file properties by their
+	 * lower-cased names, so BOT_NAME becomes bot_name and DB_PASS becomes
+	 * db_pass. This lets config.txt omit any value injected by docker-compose.
+	 * Values are never logged.
 	 */
 	private void applyEnvOverrides() {
-		for (String key : new java.util.ArrayList<>(stringPropertyNames())) {
-			String env = System.getenv(key.toUpperCase());
-			if (env != null) {
-				setProperty(key, env);
-				_myBot.getLogger().info("Property " + key + " overridden from environment variable " + key.toUpperCase());
-			}
-		}
+		System.getenv().forEach((name, value) -> setProperty(name.toLowerCase(Locale.ROOT), value));
 	}
 	
 	public void loadConfiguration() {
