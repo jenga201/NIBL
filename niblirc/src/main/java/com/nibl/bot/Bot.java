@@ -162,7 +162,7 @@ public class Bot {
     /**
      * Ensures the DCC public address is set before IRC connects. When the
      * configured value is blank, the current public IP is fetched from
-     * https://ifconfig.me/ip so the bot can advertise itself for DCC without a
+     * https://ipv4.icanhazip.com (IPv4) so the bot can advertise itself for DCC without a
      * hardcoded IP. Failure is non-fatal: IRC still connects, DCC is skipped.
      */
     private void resolvePublicAddress() {
@@ -176,20 +176,20 @@ public class Bot {
             this.setProperty("public_ip", resolved);
             this.getLogger().info("Resolved public IP for DCC: " + resolved);
         } else {
-            this.getLogger().warn("No public IP configured and ifconfig.me lookup failed; DCC will not be advertised.");
+            this.getLogger().warn("No public IP configured and the IPv4 lookup failed; DCC will not be advertised.");
         }
     }
 
     private String fetchPublicIp() {
         HTTPGet httpGet = new HTTPGet(this);
-        try (RandomAccessFile in = httpGet.getURLData("https://ifconfig.me/ip")) {
+        try (RandomAccessFile in = httpGet.getURLData("https://ipv4.icanhazip.com")) {
             if (in == null) {
                 return null;
             }
             String line = in.readLine();
             return line == null ? null : line.trim();
         } catch (IOException e) {
-            this.getLogger().warn("ifconfig.me public IP lookup failed: " + e.getMessage());
+            this.getLogger().warn("IPv4 public IP lookup failed: " + e.getMessage());
             return null;
         }
     }
