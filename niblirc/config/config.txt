@@ -1,15 +1,9 @@
+# Runtime bot identity, server, DCC and database settings are injected as
+# environment variables by NIBL/docker-compose.yml (see NIBL/.env.example):
+# BOT_NAME, BOT_PASS, SERVER, PORT, DCC_PORTS, PUBLIC_IP, DB, DB_USER, DB_PASS,
+# DB_SERVER, DB_PORT, DB_NAME. Only static, non-secret settings live below.
+
 ###IRC###
-# Values for bot_name, bot_pass, server, port, public_ip and dcc_ports are
-# supplied via environment variables (see docker-compose.yml / .env.example)
-# and are intentionally left blank here.
-#name of the bot
-bot_name =
-#nickserv password
-bot_pass =
-#servers to join space seperated
-server =
-#port
-port =
 #ssl true/false (make sure port is good)
 ssl = true
 #channels to join no # space separated :passwords
@@ -27,11 +21,6 @@ dcc_timeout = 120000
 verbose = false
 #changes nick if already used
 auto_nick_change = true
-# DCC public address. Optional: left blank it is resolved from ifconfig.me at
-# startup; set OOINUZA_PUBLIC_IP (exposed as PUBLIC_IP) to pin it.
-public_ip =
-# DCC ports
-dcc_ports =
 
 ###BOT###
 # accept dcc chat requests
@@ -63,21 +52,3 @@ topic_manager = start
 anidb_keep_alive = start
 anidb_link = http://anidb.net/api/animetitles.xml.gz
 scheduler = start
-
-###Database###
-# Values for db, db_user, db_pass, db_server, db_port and db_name are supplied
-# via environment variables (see docker-compose.yml / .env.example) and are
-# intentionally left blank here.
-# what database used mysql postgresql...
-db =
-# user for database
-db_user =
-# password for database
-db_pass =
-# server
-db_server =
-#db_server = 127.0.0.1
-# port
-db_port =
-# name of database
-db_name =
