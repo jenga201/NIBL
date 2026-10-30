@@ -9,7 +9,16 @@ public class InputStreamConverter
 {
     public static RandomAccessFile toRandomAccessFile(InputStream is) throws IOException 
     {
-        RandomAccessFile raf = new RandomAccessFile(File.createTempFile("isc", "tmp"), "rw");
+        final File tempFile = File.createTempFile("isc", "tmp");
+        RandomAccessFile raf = new RandomAccessFile(tempFile, "rw") {
+            @Override
+            public void close() throws IOException {
+                super.close();
+                if (!tempFile.delete()) {
+                    tempFile.deleteOnExit();
+                }
+            }
+        };
   
         byte[] buffer = new byte[65536];
         int    tmp    = 0;

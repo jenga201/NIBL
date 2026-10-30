@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# deploy.sh — deploy the complete NIBL stack (niblmysql, ooinuza, niblcouk,
+# deploy.sh — deploy the complete NIBL stack (niblmysql, niblirc, niblcouk,
 # swag) from a single Git checkout on the production host.
 #
 # Run from NIBL/scripts/ on your local machine:
@@ -108,10 +108,13 @@ REMOTE_EOF
 # Step 3 — build + start the whole stack
 # ---------------------------------------------------------------------------
 
-say "Build + start the stack (niblmysql -> ooinuza + niblcouk -> swag)"
+say "Build + start the stack (niblmysql -> niblirc + niblcouk -> swag)"
 ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" 'bash -s' "$REMOTE_DIR" <<'REMOTE_EOF'
 set -euo pipefail
 cd "$1"
+mkdir -p data/niblmysql data/nibl.co.uk data/niblirc data/swag logs/niblmysql logs/nibl.co.uk logs/niblirc logs/swag
+chown -R 1000:1000 data/niblmysql logs/niblmysql
+
 docker compose build --pull
 # `up -d` starts the whole stack; depends_on (niblmysql healthy) sequences it,
 # and the one-shot mysql-init sidecar (restart: "no") provisions the app DB user
@@ -160,7 +163,7 @@ bash niblmysql/migrate.sh
 
 # Let the app containers come up, then report their states.
 sleep 10
-for c in ooinuza niblcouk swag; do
+for c in niblirc niblcouk swag; do
   state=$(docker inspect -f '{{.State.Status}}' "$c" 2>/dev/null || echo missing)
   echo "$c: $state"
 done

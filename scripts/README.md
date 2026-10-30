@@ -1,7 +1,7 @@
 # Deploy script (`deploy.sh`)
 
 `deploy.sh` is the single-command production deployer for the whole NIBL stack —
-**niblmysql**, **ooinuza** (niblirc), **niblcouk** (nibl.co.uk) and
+**niblmysql**, **niblirc**, **niblcouk** (nibl.co.uk) and
 **swag** (linuxserver/swag, the Let's Encrypt TLS gateway) — all defined in the
 root `docker-compose.yml` and deployed from a single Git checkout.
 

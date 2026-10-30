@@ -1,6 +1,6 @@
 # niblmysql
 
-Common MySQL 8 back end shared by `niblirc` (ooinuza), `niblapi`, and `nibl.co.uk`.
+Common MySQL 8 back end shared by `niblirc`, `niblapi`, and `nibl.co.uk`.
 
 - `schema.sql` - database schema
 - `data.sql` - seed/exported data
@@ -17,9 +17,10 @@ cp .env.example .env                         # then set MYSQL_ROOT_PASSWORD
 docker compose up -d
 ```
 
-Data persists in `niblmysql/data/` (repo-relative, gitignored) via the
-`./niblmysql/data:/var/lib/mysql` bind mount. The container exposes 3306/33060
-to the `my-bridge` network; the MySQL admin port is published to the host at
+Data persists in `data/niblmysql/` (repo-relative, gitignored) via the
+`./data/niblmysql:/var/lib/mysql` bind mount, and the MySQL error log is written
+to `logs/niblmysql/`. The container exposes 3306/33060 to the `my-bridge`
+network; the MySQL admin port is published to the host at
 `${NIBLMYSQL_BIND:-127.0.0.1}:${NIBLMYSQL_HOST_PORT:-3306}`.
 
 ## Import schema and data
