@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+# Ensure Laravel runtime dirs exist inside the bind-mounted var/ volume
+# (the host directory may be root-owned or missing framework subdirs)
+mkdir -p /var/www/html/var/framework/cache/data \
+         /var/www/html/var/framework/sessions \
+         /var/www/html/var/framework/views \
+         /var/www/html/var/framework/testing \
+         /var/www/html/var/logs \
+         /var/www/html/var/app/private \
+         /var/www/html/var/app/public
+
+# Drop compiled Blade views from a previous image. OPcache runs with
+# validate_timestamps=0, so stale bytecode in the persistent var/ volume
+# would otherwise survive redeploys; views regenerate on demand.
+rm -rf /var/www/html/var/framework/views/*
+
+# Bake config and views now that runtime env vars are available
+php /var/www/html/artisan config:cache --force || true
+php /var/www/html/artisan view:cache --force || true
+
+chown -R www-data:www-data /var/www/html/var /var/www/html/bootstrap/cache
+
+sed -i "s/Listen 80/Listen ${PORT:-80}/g" /etc/apache2/ports.conf
+sed -i "s/:80/:${PORT:-80}/g" /etc/apache2/sites-enabled/*
+apache2-foreground

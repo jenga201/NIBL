@@ -1,0 +1,10 @@
+** To stop this listing, type "/MSG FakeDistro XDCC STOP" **
+** -( FakeDistro )-( Packlist: /msg FakeDistro xdcc send -1 )-( Please Donate )-  **
+** 7 packs **  4 of 4 slots open, Record: 1000.0kB/s
+#1 95x [9.1M] Addiction Anime Mix AMV.mp4
+#2 8x [ 19M] iLikeIt.mp4
+#3 6x [124M] (SAO AMV) 30 Seconds to Mars - The Fantasy.mp4
+this line is not a pack and must be skipped
+#4 2x [1.5G] Long Show Name - 01 [1080p].mkv
+#5 1x [oops] Malformed Size Pack
+#6 1x [10M] Pack Six<br>#7 2x [20M] Pack Seven
