@@ -60,11 +60,12 @@ Edit these at the top of the script before the first run:
 | Step | What it does |
 |---|---|
 | **0 — Preflight** | Checks local `ssh`/`scp` exist and Docker is reachable on the host. |
-| **1 — Remote dir + network** | `mkdir -p /opt/NIBL`; creates the `my-bridge` network if missing. |
+| **1 — Remote dir** | `mkdir -p /opt/NIBL`. |
 | **2 — Clone/pull the repo** | Clones `NIBL` if `.git` is missing, otherwise `git fetch` → `checkout` → `reset --hard origin/<branch>`. |
 | **3 — Seed secrets & backups** | Copies the local repo-root `.env` to `/opt/NIBL/.env` (then `chmod 600`) on a fresh clone only, and uploads `niblmysql/backup/` only when the host has no backups yet (so `migrate.sh` can restore an empty database). Then verifies `/opt/NIBL/.env` exists and is non-empty. |
-| **4 — Build + start the stack** | `docker compose build --pull` then `up -d`. `depends_on` sequences the services (MySQL healthy → web/irc → swag); the one-shot `mysql-init` sidecar provisions the app DB user and exits. Waits for `niblmysql` healthy, removes the one-shot sidecar, then runs `niblmysql/migrate.sh`. |
-| **5 — Verify** | Lists container states, then curls `SITE_URL` and `API_URL` through swag (`--resolve` to `127.0.0.1`); requires both to return `200`. |
+| **4 — Enable Docker IPv6 (first checkout)** | Runs `scripts/setup-docker-ipv6.sh` over `ssh -t` via `sudo` (prompts for the host password) to write `/etc/docker/daemon.json` and restart the daemon; idempotent on follow-up runs. |
+| **5 — Build + start the stack** | Creates the dual-stack `my-bridge` network if missing, then `docker compose build --pull` + `up -d`. `depends_on` sequences the services (MySQL healthy → web/irc → swag); the one-shot `mysql-init` sidecar provisions the app DB user and exits. Waits for `niblmysql` healthy, removes the one-shot sidecar, then runs `niblmysql/migrate.sh`. |
+| **6 — Verify** | Lists container states, then curls `SITE_URL` and `API_URL` through swag (`--resolve` to `127.0.0.1`); requires both to return `200`. |
 
 ## Idempotency & safety notes
 
@@ -75,6 +76,9 @@ Edit these at the top of the script before the first run:
   is never in the repository, so it survives `git pull` untouched.
 - `.env` is also gitignored and is written to the host only on the first
   checkout, so later deploys never overwrite the host's production secrets.
+- `setup-docker-ipv6.sh` is run (via `sudo`) only on a first checkout; it writes
+  `/etc/docker/daemon.json` only when that file is missing or empty and restarts
+  the Docker daemon, so an existing daemon.json is never clobbered.
 - `migrate.sh` is idempotent (tracks applied filenames in
   `ooinuza.schema_migrations`) and restores the newest `niblmysql/backup/`
   dump only if `ooinuza` is empty.
