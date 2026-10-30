@@ -15,14 +15,14 @@
 #   1. Preflight: ssh/scp present locally, Docker reachable on the host.
 #   2. Ensure /opt/NIBL and the my-bridge network exist.
 #   3. Clone (or pull) the single NIBL repository into /opt/NIBL.
-#   4. On a first (fresh) checkout, copy the local .env and MySQL backups.
+#   4. Copy local .env on first checkout; seed MySQL backups if the host has none.
 #   5. docker compose build + up for the whole stack.
 #   6. Wait for niblmysql healthy, clean up one-shot sidecars, run migrations.
 #   7. Verify: container states + an HTTP check through swag.
 #
 # Prerequisites:
-#   - Locally: the gitignored .env at the repo root plus any niblmysql/backup/
-#     dumps (both copied to the host only on the first deploy).
+#   - Locally: the gitignored .env at the repo root (first deploy only), and
+#     niblmysql/backup/ dumps (uploaded when the host has no backups yet).
 #   - On the host: Docker + Compose v2 and curl; SSH reachability as REMOTE_SSH
 #     with Docker permissions; read access to the NIBL Git repository (HTTPS).
 set -euo pipefail
@@ -122,28 +122,37 @@ fi
 REMOTE_EOF
 
 # ---------------------------------------------------------------------------
-# Step 3 — seed secrets and backups on a first checkout
+# Step 3 — seed secrets and backups
 # ---------------------------------------------------------------------------
 
+# The .env is copied only on a fresh checkout; afterwards the host's copy wins.
 if [ "$FIRST_CHECKOUT" = "true" ]; then
-  say "First checkout — copying local .env and database backups to the host"
+  say "First checkout — copying local .env to the host"
   [ -s "$LOCAL_ENV_FILE" ] || fail "local .env is missing or empty: $LOCAL_ENV_FILE"
   scp -q -o BatchMode=yes -o ConnectTimeout=15 "$LOCAL_ENV_FILE" "$REMOTE_SSH:$REMOTE_ENV_FILE"
   ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" "chmod 600 '$REMOTE_ENV_FILE'"
-
-  # Upload the local MySQL backups so migrate.sh can restore an empty database.
-  if [ -d "$LOCAL_BACKUP_DIR" ]; then
-    scp -r -q -o BatchMode=yes -o ConnectTimeout=60 "$LOCAL_BACKUP_DIR" "$REMOTE_SSH:$REMOTE_DIR/niblmysql/"
-  else
-    say "No local backup directory at $LOCAL_BACKUP_DIR"
-  fi
 else
-  say "Existing checkout — keeping the host's .env and backups"
+  say "Existing checkout — keeping the host's .env"
 fi
 
 # The .env must exist before docker compose runs (just copied, or pre-existing).
 ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" "[ -s '$REMOTE_ENV_FILE' ]" \
   || fail "$REMOTE_ENV_FILE is missing or empty"
+
+# Seed MySQL backups if the host has none yet — migrate.sh needs one to restore
+# an empty database. This also covers a re-deploy onto a freshly cloned host.
+if ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" 'bash -s' "$REMOTE_DIR" <<'REMOTE_EOF'
+root=$1
+ls "$root/niblmysql/backup"/all-databases-*.sql.gz >/dev/null 2>&1
+REMOTE_EOF
+then
+  say "Host already has MySQL backups — keeping them"
+elif [ -d "$LOCAL_BACKUP_DIR" ]; then
+  say "Uploading local MySQL backups to the host"
+  scp -r -q -o BatchMode=yes -o ConnectTimeout=60 "$LOCAL_BACKUP_DIR" "$REMOTE_SSH:$REMOTE_DIR/niblmysql/"
+else
+  say "No local MySQL backups to upload"
+fi
 
 # ---------------------------------------------------------------------------
 # Step 4 — build + start the whole stack
