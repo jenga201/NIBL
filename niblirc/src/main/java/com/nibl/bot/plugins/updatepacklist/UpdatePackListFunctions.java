@@ -60,9 +60,11 @@ public class UpdatePackListFunctions {
 		HashSet<String> online_bots = new HashSet<String>();
 		for(User onlineBot: findHops()){
 			online_bots.add(onlineBot.getNick());
-			if( getBot(onlineBot.getNick()) != null ){
+			AbstractDistroBot bot = getBot(onlineBot.getNick());
+			if( bot != null ){
 				try{
-					getBot(onlineBot.getNick()).setStatusId(1);
+					bot.setStatusId(1);
+					bot.setLastSeen();
 				}catch(Exception e){
 					_myBot.sendMessageFair("#" + _myBot.getProperty("admin_channel"), "registerNewAndOfflineBots failed for " + onlineBot.getNick() + ". This bot might be stale.");
 				}

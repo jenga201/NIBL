@@ -137,6 +137,10 @@ public abstract class AbstractDistroBot extends BotExtend {
 		_updatePackListDAO.setBotStatus(this);
 		_myBot.getLogger().trace("Set " + this.getName() + " " + ((status==0)?"Offline":"Online"));
 	}
+
+	public void setLastSeen() throws SQLException{
+		_updatePackListDAO.setBotLastSeen(this);
+	}
 	
 	public void killTimer(){
 		if(_timer!=null)
