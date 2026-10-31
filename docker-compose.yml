@@ -129,9 +129,9 @@ services:
       LOG_DAILY_DAYS: ${WEB_LOG_DAILY_DAYS:-14}
       LOG_LEVEL: ${WEB_LOG_LEVEL:-info}
       NIBL_DATA_CACHE: ${WEB_DATA_CACHE:-apcu}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_CLIENT: phpredis
+      MEILI_ENABLED: "true"
+      MEILI_HOST: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in .env}
     expose:
       - "80"
     ports:
@@ -187,13 +187,21 @@ services:
     networks:
       - my-bridge
 
-  redis:
-    image: redis:7-alpine
-    container_name: niblredis
+  meilisearch:
+    image: getmeili/meilisearch:v1.56.0
+    container_name: niblmeili
+    user: "1000:1000"
     restart: unless-stopped
-    command: ["redis-server", "--save", "", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      MEILI_ENV: production
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in .env}
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - ./data/meilisearch:/meili_data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:7700/health"]
       interval: 30s
       timeout: 5s
       retries: 5

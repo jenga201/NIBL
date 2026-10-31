@@ -7,16 +7,15 @@ use App\Http\Requests\LatestPacksRequest;
 use App\Http\Requests\PaginatePacksRequest;
 use App\Http\Requests\SearchPacksRequest;
 use App\Http\Resources\PackResource;
-use App\Infrastructure\Service\PackCache;
+use App\Infrastructure\Service\PackSearch;
 use App\Models\Bot;
 use App\Models\Pack;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 final class PackController extends Controller
 {
-    public function __construct(private readonly PackCache $packCache)
+    public function __construct(private readonly PackSearch $packSearch)
     {
     }
 
@@ -29,39 +28,25 @@ final class PackController extends Controller
         );
     }
 
-    public function botPacksPage(PaginatePacksRequest $request, int $botId): JsonResponse
+    public function botPacksPage(PaginatePacksRequest $request, int $botId): AnonymousResourceCollection
     {
         $bot = Bot::listable()->findOrFail($botId);
 
-        // Episode filtering is rare and not cached; keep the cold path for it.
-        if ($request->episodeNumber() > 0) {
-            return PackResource::collection(
-                $bot->packs()
-                    ->forEpisode($request->episodeNumber())
-                    ->sorted($request->sort(), $request->direction())
-                    ->paginate(perPage: $request->size(), page: $request->page())
-            )->response();
-        }
-
-        $json = $this->packCache->botPage(
-            $bot,
-            $request->sort(),
-            $request->direction(),
-            $request->page(),
-            $request->size(),
+        return PackResource::collection(
+            $this->packSearch->botPage(
+                $bot,
+                $request->sort(),
+                $request->direction(),
+                $request->page(),
+                $request->size(),
+                $request->episodeNumber()
+            )
         );
-
-        return JsonResponse::fromJsonString($json);
     }
 
     public function latest(LatestPacksRequest $request): AnonymousResourceCollection
     {
-        return PackResource::collection(
-            Pack::ofActiveBots()
-                ->orderByDesc('last_modified')
-                ->limit($request->size())
-                ->get()
-        );
+        return PackResource::collection($this->packSearch->latest($request->size()));
     }
 
     public function search(SearchPacksRequest $request): AnonymousResourceCollection
@@ -72,7 +57,15 @@ final class PackController extends Controller
     public function searchPage(SearchPacksRequest $request): AnonymousResourceCollection
     {
         return PackResource::collection(
-            $this->searchQuery($request)->paginate(perPage: $request->size(), page: $request->page())
+            $this->packSearch->searchPage(
+                $request->searchTerm(),
+                null,
+                $request->sort(),
+                $request->direction(),
+                $request->page(),
+                $request->size(),
+                $request->episodeNumber()
+            )
         );
     }
 
@@ -88,7 +81,15 @@ final class PackController extends Controller
         Bot::listable()->findOrFail($botId);
 
         return PackResource::collection(
-            $this->searchQuery($request, $botId)->paginate(perPage: $request->size(), page: $request->page())
+            $this->packSearch->searchPage(
+                $request->searchTerm(),
+                $botId,
+                $request->sort(),
+                $request->direction(),
+                $request->page(),
+                $request->size(),
+                $request->episodeNumber()
+            )
         );
     }
 

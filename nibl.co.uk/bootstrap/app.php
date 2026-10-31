@@ -57,7 +57,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
         });
     })
     ->withSchedule(function (Schedule $schedule): void {
-        $schedule->command('packlists:warm')->everyMinute();
+        $schedule->command('meilisearch:sync')->everyMinute();
     })->create();
 
 // The persistent var/ volume (bind-mounted in Docker) doubles as Laravel's
