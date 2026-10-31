@@ -37,7 +37,7 @@ docker compose up -d --build
 `docker compose up` starts everything in dependency order via `depends_on`:
 `niblmysql` (waits healthy) → `niblirc` + `niblcouk` → `swag` (`meilisearch` starts independently on the same network).
 The application DB user and schema are applied separately (which
-`scripts/deploy.sh` automates both):
+`scripts/nibl.sh` automates both):
 `niblmysql/bootstrap.sh` then
 `docker compose run --rm niblcouk php artisan migrate --force`.
 
@@ -76,7 +76,7 @@ NIBL/
 │   ├── nibl.co.uk/    #   Laravel daily logs
 │   ├── niblirc/       #   bot rolling log
 │   └── swag/          #   nginx/php/fail2ban logs
-└── scripts/           # deploy.sh (single-command production deploy)
+└── scripts/           # nibl.sh (production deploy/rebuild/logs TUI)
 ```
 
 All runtime data and application logs live under the top-level `data/` and
@@ -88,12 +88,12 @@ routing is versioned.
 ## Deploying to production
 
 ```bash
-bash scripts/deploy.sh
+bash scripts/nibl.sh
 ```
 
-See [`scripts/README.md`](scripts/README.md) for the full procedure: SSH to the
-host, `git pull` this repository, build + `docker compose up`, migrations, and an
-HTTP verification check through swag.
+opens a small menu — pick **Deploy** (full pipeline), **Rebuild** (pull + build +
+migrate/sync), or **Logs** (`docker compose logs -f`). See
+[`scripts/README.md`](scripts/README.md) for the full procedure.
 
 ## Sub-projects
 

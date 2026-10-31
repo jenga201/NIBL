@@ -3,7 +3,7 @@
 # setup-docker-ipv6.sh — enable Docker IPv6 so the compose `[::]` port publishes
 # work on a dual-stack host. Idempotent: safe to re-run.
 #
-# Run as root (deploy.sh invokes it via sudo on first checkout):
+# Run as root (nibl.sh invokes it via sudo on first checkout):
 #   sudo bash /opt/NIBL/scripts/setup-docker-ipv6.sh
 set -euo pipefail
 
