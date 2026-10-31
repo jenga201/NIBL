@@ -1,4 +1,4 @@
-import type { PackListPage, SortState } from './types';
+import type { KeysetPage, PackListPage, SortState } from './types';
 
 export const ALL_CHUNK_SIZE = 200;
 
@@ -52,4 +52,39 @@ export async function fetchPackPage(url: string): Promise<PackListPage> {
     }
 
     return (await response.json()) as PackListPage;
+}
+
+export function buildKeysetUrl(
+    source: PackListSource,
+    sort: SortState,
+    pageSize: number,
+    cursor: string | null,
+): string {
+    if (source.mode !== 'bot') {
+        throw new Error('Keyset pagination is only used for a bot listing');
+    }
+
+    const params = new URLSearchParams({
+        sort: sort.key,
+        direction: sort.direction,
+        size: String(pageSize),
+    });
+
+    if (cursor) {
+        params.set('cursor', cursor);
+    }
+
+    return `/api/packs/${source.botId}/page?${params.toString()}`;
+}
+
+export async function fetchKeysetPage(url: string): Promise<KeysetPage> {
+    const response = await fetch(url, {
+        headers: { Accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+        throw new Error(`Pack request failed with status ${response.status}`);
+    }
+
+    return (await response.json()) as KeysetPage;
 }

@@ -22,6 +22,13 @@ final class PackSearch
 {
     private const INDEX = 'packs';
 
+    /** Sortable columns with a (bot_id, X) composite index — the keyset page. */
+    private const KEYSET_COLUMNS = [
+        'number' => 'number',
+        'name' => 'name',
+        'sizekbits' => 'sizekbits',
+    ];
+
     public function enabled(): bool
     {
         return (bool) config('meili.enabled');
@@ -42,29 +49,224 @@ final class PackSearch
     // ------------------------------------------------------------------
 
     /**
-     * @return LengthAwarePaginator<Pack>
+     * Cursor (keyset) pagination for a bot's pack list. The cursor encodes the
+     * boundary (sort value + id) of the previous page; a deep page seeks from
+     * there instead of skipping O(offset). Meilisearch serves the search path
+     * via a range filter + sort; the Eloquent fallback mirrors it on MySQL.
+     *
+     * @return array{packs: Collection<int, Pack>, total: int, next: ?string, prev: ?string}
      */
-    public function botPage(Bot $bot, string $sort, string $direction, int $page, int $size, int $episodeNumber = 0): LengthAwarePaginator
+    public function botPage(Bot $bot, string $sort, string $direction, int $size, ?string $cursor, int $episodeNumber = 0): array
     {
-        if (! $this->enabled()) {
-            return $bot->packs()
-                ->forEpisode($episodeNumber)
-                ->sorted($sort, $direction)
-                ->paginate($size, ['*'], 'page', $page);
+        if ($this->enabled()) {
+            return $this->meiliKeysetPage($bot, $sort, $direction, $size, $cursor, $episodeNumber);
         }
+
+        return $this->eloquentKeysetPage($bot, $sort, $direction, $size, $cursor, $episodeNumber);
+    }
+
+    private function eloquentKeysetPage(Bot $bot, string $sort, string $direction, int $size, ?string $cursor, int $episodeNumber): array
+    {
+        $query = $bot->packs();
+        if ($episodeNumber > 0) {
+            $query->where('episode_number', $episodeNumber);
+        }
+
+        $column = self::KEYSET_COLUMNS[$sort] ?? null;
+        if ($column === null) {
+            $paginator = (clone $query)->sorted($sort, $direction)->paginate($size, ['*'], 'page', 1);
+
+            return [
+                'packs' => $paginator->getCollection(),
+                'total' => $paginator->total(),
+                'next' => null,
+                'prev' => null,
+            ];
+        }
+
+        $asc = strtolower($direction) !== 'desc';
+
+        if ($cursor === null) {
+            $rows = (clone $query)
+                ->orderBy($column, $asc ? 'asc' : 'desc')
+                ->orderBy('id', $asc ? 'asc' : 'desc')
+                ->limit($size + 1)
+                ->get();
+
+            $hasNext = $rows->count() > $size;
+            $rows = $rows->slice(0, $size)->values();
+            $last = $rows->last();
+
+            return [
+                'packs' => $rows,
+                'total' => $query->count(),
+                'next' => $hasNext && $last !== null
+                    ? $this->encodeCursor($sort, $direction, 'after', $last->{$column}, (int) $last->id)
+                    : null,
+                'prev' => null,
+            ];
+        }
+
+        $boundary = $this->decodeCursor($cursor);
+        if ($boundary === null) {
+            return $this->botPage($bot, $sort, $direction, $size, null, $episodeNumber);
+        }
+
+        $forward = ($boundary['o'] ?? 'after') === 'after';
+        $rows = $this->keysetQuery($query, $column, $asc, $forward, $boundary['v'], (int) $boundary['i'], $size + 1);
+
+        $hasMore = $rows->count() > $size;
+        $rows = $rows->slice(0, $size)->values();
+        $first = $rows->first();
+        $last = $rows->last();
+
+        return [
+            'packs' => $rows,
+            'total' => $query->count(),
+            'next' => $forward
+                ? ($hasMore && $last !== null ? $this->encodeCursor($sort, $direction, 'after', $last->{$column}, (int) $last->id) : null)
+                : ($last !== null ? $this->encodeCursor($sort, $direction, 'after', $last->{$column}, (int) $last->id) : null),
+            'prev' => $forward
+                ? ($first !== null ? $this->encodeCursor($sort, $direction, 'before', $first->{$column}, (int) $first->id) : null)
+                : ($hasMore && $first !== null ? $this->encodeCursor($sort, $direction, 'before', $first->{$column}, (int) $first->id) : null),
+        ];
+    }
+
+    private function meiliKeysetPage(Bot $bot, string $sort, string $direction, int $size, ?string $cursor, int $episodeNumber): array
+    {
+        $asc = strtolower($direction) !== 'desc';
+        $dir = $asc ? 'asc' : 'desc';
+        $sortList = [$sort.':'.$dir, 'id:'.$dir];
 
         $filters = ["bot_id = {$bot->id}"];
         if ($episodeNumber > 0) {
             $filters[] = "episode_number = {$episodeNumber}";
         }
 
-        return $this->meiliPaginate(
-            null,
-            ['filter' => $filters, 'sort' => [$this->sortString($sort, $direction)]],
-            $page,
-            $size,
-            false
-        );
+        if (! isset(self::KEYSET_COLUMNS[$sort])) {
+            $result = $this->index()->search(null, ['filter' => $filters, 'sort' => $sortList, 'limit' => $size]);
+
+            return [
+                'packs' => $this->hydrateAll($result->getHits()),
+                'total' => (int) $result->getEstimatedTotalHits(),
+                'next' => null,
+                'prev' => null,
+            ];
+        }
+
+        if ($cursor === null) {
+            $result = $this->index()->search(null, ['filter' => $filters, 'sort' => $sortList, 'limit' => $size + 1]);
+            $hits = $result->getHits();
+            $hasNext = count($hits) > $size;
+            $hits = array_slice($hits, 0, $size);
+            $last = $hits === [] ? null : $hits[count($hits) - 1];
+
+            return [
+                'packs' => $this->hydrateAll($hits),
+                'total' => (int) $result->getEstimatedTotalHits(),
+                'next' => $hasNext && $last !== null
+                    ? $this->encodeCursor($sort, $direction, 'after', $last[$sort], (int) $last['id'])
+                    : null,
+                'prev' => null,
+            ];
+        }
+
+        $boundary = $this->decodeCursor($cursor);
+        if ($boundary === null) {
+            return $this->meiliKeysetPage($bot, $sort, $direction, $size, null, $episodeNumber);
+        }
+
+        $forward = ($boundary['o'] ?? 'after') === 'after';
+        $result = $this->meiliKeysetSearch($filters, $sort, $dir, $asc, $forward, $boundary['v'], (int) $boundary['i'], $size + 1);
+        $hits = $result->getHits();
+
+        if (! $forward) {
+            $hits = array_reverse($hits);
+        }
+
+        $hasMore = count($hits) > $size;
+        $hits = array_slice($hits, 0, $size);
+        $first = $hits === [] ? null : $hits[0];
+        $last = $hits === [] ? null : $hits[count($hits) - 1];
+
+        return [
+            'packs' => $this->hydrateAll($hits),
+            'total' => (int) $result->getEstimatedTotalHits(),
+            'next' => $forward
+                ? ($hasMore && $last !== null ? $this->encodeCursor($sort, $direction, 'after', $last[$sort], (int) $last['id']) : null)
+                : ($last !== null ? $this->encodeCursor($sort, $direction, 'after', $last[$sort], (int) $last['id']) : null),
+            'prev' => $forward
+                ? ($first !== null ? $this->encodeCursor($sort, $direction, 'before', $first[$sort], (int) $first['id']) : null)
+                : ($hasMore && $first !== null ? $this->encodeCursor($sort, $direction, 'before', $first[$sort], (int) $first['id']) : null),
+        ];
+    }
+
+    private function meiliKeysetSearch(array $filters, string $sort, string $dir, bool $asc, bool $forward, $value, int $id, int $limit)
+    {
+        $cmp = ($forward === $asc) ? '>' : '<';
+        $fetch = $forward ? $dir : ($asc ? 'desc' : 'asc');
+        $v = $this->meiliValue($sort, $value);
+
+        return $this->index()->search(null, [
+            'filter' => array_merge($filters, ["{$sort} {$cmp} {$v} OR ({$sort} = {$v} AND id {$cmp} {$id})"]),
+            'sort' => [$sort.':'.$fetch, 'id:'.$fetch],
+            'limit' => $limit,
+        ]);
+    }
+
+    private function meiliValue(string $sort, $value): string
+    {
+        return is_string($value) ? '"'.addslashes($value).'"' : (string) $value;
+    }
+
+    private function hydrateAll(array $hits): Collection
+    {
+        return collect($hits)->map(fn (array $hit) => $this->hydrate($hit, false))->values();
+    }
+
+    private function keysetQuery($query, string $column, bool $asc, bool $forward, $value, int $id, int $limit): Collection
+    {
+        $cmp = ($forward === $asc) ? '>' : '<';
+        $natural = $asc ? 'asc' : 'desc';
+        $fetch = $forward ? $natural : ($asc ? 'desc' : 'asc');
+
+        $rows = (clone $query)
+            ->where(function ($q) use ($column, $cmp, $value, $id) {
+                $q->where($column, $cmp, $value)
+                  ->orWhere(function ($q2) use ($column, $value, $cmp, $id) {
+                      $q2->where($column, $value)->where('id', $cmp, $id);
+                  });
+            })
+            ->orderBy($column, $fetch)
+            ->orderBy('id', $fetch)
+            ->limit($limit)
+            ->get();
+
+        return $forward ? $rows : $rows->reverse()->values();
+    }
+
+    private function encodeCursor(string $sort, string $direction, string $op, $value, int $id): ?string
+    {
+        $encoded = base64_encode(json_encode([
+            'k' => $sort,
+            'd' => strtolower($direction) === 'desc' ? 'desc' : 'asc',
+            'o' => $op,
+            'v' => $value,
+            'i' => $id,
+        ]));
+
+        return rtrim(strtr($encoded, '+/', '-_'), '=');
+    }
+
+    private function decodeCursor(string $cursor): ?array
+    {
+        $decoded = json_decode(base64_decode(strtr($cursor, '-_', '+/')), true);
+
+        if (! is_array($decoded) || ! array_key_exists('v', $decoded) || ! array_key_exists('i', $decoded)) {
+            return null;
+        }
+
+        return $decoded;
     }
 
     /**

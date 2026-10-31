@@ -11,6 +11,7 @@ use App\Infrastructure\Service\PackSearch;
 use App\Models\Bot;
 use App\Models\Pack;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 final class PackController extends Controller
@@ -28,20 +29,28 @@ final class PackController extends Controller
         );
     }
 
-    public function botPacksPage(PaginatePacksRequest $request, int $botId): AnonymousResourceCollection
+    public function botPacksPage(PaginatePacksRequest $request, int $botId): JsonResponse
     {
         $bot = Bot::listable()->findOrFail($botId);
 
-        return PackResource::collection(
-            $this->packSearch->botPage(
-                $bot,
-                $request->sort(),
-                $request->direction(),
-                $request->page(),
-                $request->size(),
-                $request->episodeNumber()
-            )
+        $result = $this->packSearch->botPage(
+            $bot,
+            $request->sort(),
+            $request->direction(),
+            $request->size(),
+            $request->cursor(),
+            $request->episodeNumber()
         );
+
+        return response()->json([
+            'data' => array_values(PackResource::collection($result['packs'])->toArray($request)),
+            'meta' => [
+                'total' => $result['total'],
+                'per_page' => $request->size(),
+                'next' => $result['next'],
+                'prev' => $result['prev'],
+            ],
+        ]);
     }
 
     public function latest(LatestPacksRequest $request): AnonymousResourceCollection

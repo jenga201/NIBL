@@ -22,6 +22,7 @@ class PaginatePacksRequest extends FormRequest
             'direction' => ['string', Rule::in(['asc', 'desc', 'ASC', 'DESC'])],
             'episode_number' => ['integer', 'min:0'],
             'episodeNumber' => ['integer', 'min:0'],
+            'cursor' => ['string', 'max:2048'],
         ];
     }
 
@@ -56,5 +57,12 @@ class PaginatePacksRequest extends FormRequest
     public function episodeNumber(): int
     {
         return (int) $this->validated('episode_number', 0);
+    }
+
+    public function cursor(): ?string
+    {
+        $cursor = $this->validated('cursor');
+
+        return ($cursor === null || $cursor === '') ? null : (string) $cursor;
     }
 }

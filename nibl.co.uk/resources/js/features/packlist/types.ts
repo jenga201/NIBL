@@ -44,3 +44,15 @@ export type PackColumn = ColumnDef<Pack, any>;
 export function isSortKey(value: string): value is SortKey {
     return (SORTABLE_KEYS as readonly string[]).includes(value);
 }
+
+export type KeysetMeta = {
+    total: number;
+    per_page: number;
+    next: string | null;
+    prev: string | null;
+};
+
+export type KeysetPage = {
+    data: Pack[];
+    meta: KeysetMeta;
+};
