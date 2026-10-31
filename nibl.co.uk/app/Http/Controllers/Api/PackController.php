@@ -20,6 +20,22 @@ final class PackController extends Controller
     {
     }
 
+    /**
+     * @param  array{packs: \Illuminate\Support\Collection<int, Pack>, total: int, next: ?string, prev: ?string}  $result
+     */
+    private function keysetJson(PaginatePacksRequest $request, array $result): JsonResponse
+    {
+        return response()->json([
+            'data' => array_values(PackResource::collection($result['packs'])->toArray($request)),
+            'meta' => [
+                'total' => $result['total'],
+                'per_page' => $request->size(),
+                'next' => $result['next'],
+                'prev' => $result['prev'],
+            ],
+        ]);
+    }
+
     public function botPacks(int $botId): AnonymousResourceCollection
     {
         $bot = Bot::listable()->findOrFail($botId);
@@ -33,24 +49,18 @@ final class PackController extends Controller
     {
         $bot = Bot::listable()->findOrFail($botId);
 
-        $result = $this->packSearch->botPage(
-            $bot,
-            $request->sort(),
-            $request->direction(),
-            $request->size(),
-            $request->cursor(),
-            $request->episodeNumber()
+        return $this->keysetJson(
+            $request,
+            $this->packSearch->keysetPage(
+                $bot->id,
+                '',
+                $request->sort(),
+                $request->direction(),
+                $request->size(),
+                $request->cursor(),
+                $request->episodeNumber()
+            )
         );
-
-        return response()->json([
-            'data' => array_values(PackResource::collection($result['packs'])->toArray($request)),
-            'meta' => [
-                'total' => $result['total'],
-                'per_page' => $request->size(),
-                'next' => $result['next'],
-                'prev' => $result['prev'],
-            ],
-        ]);
     }
 
     public function latest(LatestPacksRequest $request): AnonymousResourceCollection
@@ -63,16 +73,17 @@ final class PackController extends Controller
         return PackResource::collection($this->searchQuery($request)->get());
     }
 
-    public function searchPage(SearchPacksRequest $request): AnonymousResourceCollection
+    public function searchPage(SearchPacksRequest $request): JsonResponse
     {
-        return PackResource::collection(
-            $this->packSearch->searchPage(
-                $request->searchTerm(),
+        return $this->keysetJson(
+            $request,
+            $this->packSearch->keysetPage(
                 null,
+                $request->searchTerm(),
                 $request->sort(),
                 $request->direction(),
-                $request->page(),
                 $request->size(),
+                $request->cursor(),
                 $request->episodeNumber()
             )
         );
@@ -85,18 +96,19 @@ final class PackController extends Controller
         return PackResource::collection($this->searchQuery($request, $botId)->get());
     }
 
-    public function searchInBotPage(SearchPacksRequest $request, int $botId): AnonymousResourceCollection
+    public function searchInBotPage(SearchPacksRequest $request, int $botId): JsonResponse
     {
         Bot::listable()->findOrFail($botId);
 
-        return PackResource::collection(
-            $this->packSearch->searchPage(
-                $request->searchTerm(),
+        return $this->keysetJson(
+            $request,
+            $this->packSearch->keysetPage(
                 $botId,
+                $request->searchTerm(),
                 $request->sort(),
                 $request->direction(),
-                $request->page(),
                 $request->size(),
+                $request->cursor(),
                 $request->episodeNumber()
             )
         );

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import type { PackListSource } from './api';
 import { DataTable } from './DataTable';
 import type { PackColumn, SortState } from './types';
-import { useInfinitePacks } from './usePackList';
+import { useInfiniteKeyset } from './usePackList';
 
 type Props = {
     source: PackListSource;
@@ -22,7 +22,7 @@ export function InfinitePacksTable({
     onSortChange,
 }: Props) {
     const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
-        useInfinitePacks({ source, sort, enabled });
+        useInfiniteKeyset({ source, sort, enabled });
 
     const rows = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data]);
     const total = data?.pages[0]?.meta.total ?? 0;

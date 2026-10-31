@@ -13,20 +13,6 @@ export type Pack = {
     bot_batch_enabled?: boolean;
 };
 
-export type PackListMeta = {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number | null;
-    to: number | null;
-};
-
-export type PackListPage = {
-    data: Pack[];
-    meta: PackListMeta;
-};
-
 export const SORTABLE_KEYS = ['number', 'name', 'sizekbits', 'bot_name'] as const;
 
 export type SortKey = (typeof SORTABLE_KEYS)[number];

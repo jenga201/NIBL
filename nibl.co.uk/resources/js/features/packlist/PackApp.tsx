@@ -7,7 +7,6 @@ import { formatBatchXDCC } from './format';
 import { InfinitePacksTable } from './InfinitePacksTable';
 import { KeysetPacksTable } from './KeysetPacksTable';
 import { PageSizeSelect } from './PageSizeSelect';
-import { PaginatedPacksTable } from './PaginatedPacksTable';
 import { SearchBox } from './SearchBox';
 import type { Pack, SortState } from './types';
 import { usePackListState } from './usePackListState';
@@ -20,13 +19,12 @@ type Props = {
 
 export function PackApp({ botId, botName, batchEnabled }: Props) {
     const { state, update } = usePackListState();
-    const { query, sort, direction, page, pageSize } = state;
+    const { query, sort, direction, pageSize } = state;
     const sortState: SortState = { key: sort, direction };
 
     const showBot = botId === undefined;
     const hasValidQuery = query.trim().length >= 3;
     const enabled = !showBot || hasValidQuery;
-    const isBotListing = botId !== undefined && !hasValidQuery;
 
     const source: PackListSource =
         botId !== undefined
@@ -138,7 +136,7 @@ export function PackApp({ botId, botName, batchEnabled }: Props) {
                             emptyMessage={emptyMessage}
                             onSortChange={handleSortChange}
                         />
-                    ) : isBotListing ? (
+                    ) : (
                         <KeysetPacksTable
                             source={source}
                             sort={sortState}
@@ -147,18 +145,6 @@ export function PackApp({ botId, botName, batchEnabled }: Props) {
                             columns={columns}
                             emptyMessage={emptyMessage}
                             onSortChange={handleSortChange}
-                        />
-                    ) : (
-                        <PaginatedPacksTable
-                            source={source}
-                            sort={sortState}
-                            page={page}
-                            pageSize={pageSize}
-                            enabled={enabled}
-                            columns={columns}
-                            emptyMessage={emptyMessage}
-                            onSortChange={handleSortChange}
-                            onPageChange={(nextPage) => update({ page: nextPage })}
                         />
                     )}
                 </>

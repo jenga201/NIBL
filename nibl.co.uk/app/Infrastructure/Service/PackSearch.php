@@ -4,7 +4,7 @@ namespace App\Infrastructure\Service;
 
 use App\Models\Bot;
 use App\Models\Pack;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Meilisearch\Client;
@@ -22,11 +22,19 @@ final class PackSearch
 {
     private const INDEX = 'packs';
 
-    /** Sortable columns with a (bot_id, X) composite index — the keyset page. */
+    /** MySQL columns (real packs columns) eligible for the keyset cursor. */
     private const KEYSET_COLUMNS = [
         'number' => 'number',
         'name' => 'name',
         'sizekbits' => 'sizekbits',
+    ];
+
+    /** Meilisearch sort keys eligible for the keyset cursor (adds bot_name). */
+    private const MEILI_KEYSET_COLUMNS = [
+        'number' => 'number',
+        'name' => 'name',
+        'sizekbits' => 'sizekbits',
+        'bot_name' => 'bot_name',
     ];
 
     public function enabled(): bool
@@ -49,39 +57,42 @@ final class PackSearch
     // ------------------------------------------------------------------
 
     /**
-     * Cursor (keyset) pagination for a bot's pack list. The cursor encodes the
-     * boundary (sort value + id) of the previous page; a deep page seeks from
-     * there instead of skipping O(offset). Meilisearch serves the search path
-     * via a range filter + sort; the Eloquent fallback mirrors it on MySQL.
+     * Cursor (keyset) pagination for a bot's pack list or a search across
+     * packs. The cursor encodes the boundary (sort value + id) of the previous
+     * page; a deep page seeks from there instead of skipping O(offset).
+     * Meilisearch serves the search + sort via a range filter; the Eloquent
+     * fallback mirrors it on MySQL.
+     *
+     * $botId === null → search across all active bots (query required).
+     * $botId !== null → one bot's packs (query optional; search-in-bot).
      *
      * @return array{packs: Collection<int, Pack>, total: int, next: ?string, prev: ?string}
      */
-    public function botPage(Bot $bot, string $sort, string $direction, int $size, ?string $cursor, int $episodeNumber = 0): array
+    public function keysetPage(?int $botId, string $query, string $sort, string $direction, int $size, ?string $cursor, int $episodeNumber = 0): array
     {
-        if ($cursor === 'last') {
-            return $this->enabled()
-                ? $this->meiliLastPage($bot, $sort, $direction, $size, $episodeNumber)
-                : $this->eloquentLastPage($bot, $sort, $direction, $size, $episodeNumber);
-        }
-
         if ($this->enabled()) {
-            return $this->meiliKeysetPage($bot, $sort, $direction, $size, $cursor, $episodeNumber);
+            $filters = $botId === null ? ['bot_active = true'] : ["bot_id = {$botId}"];
+            if ($episodeNumber > 0) {
+                $filters[] = "episode_number = {$episodeNumber}";
+            }
+            $withBot = $botId === null;
+
+            return $cursor === 'last'
+                ? $this->meiliLastPage($filters, $query, $sort, $direction, $size, $withBot)
+                : $this->meiliKeysetPage($filters, $query, $sort, $direction, $size, $cursor, $withBot);
         }
 
-        return $this->eloquentKeysetPage($bot, $sort, $direction, $size, $cursor, $episodeNumber);
+        return $cursor === 'last'
+            ? $this->eloquentLastPage($botId, $query, $sort, $direction, $size, $episodeNumber)
+            : $this->eloquentKeysetPage($botId, $query, $sort, $direction, $size, $cursor, $episodeNumber);
     }
 
-    private function meiliLastPage(Bot $bot, string $sort, string $direction, int $size, int $episodeNumber): array
+    private function meiliLastPage(array $filters, string $query, string $sort, string $direction, int $size, bool $withBot): array
     {
         $asc = strtolower($direction) !== 'desc';
         $opposite = $asc ? 'desc' : 'asc';
 
-        $filters = ["bot_id = {$bot->id}"];
-        if ($episodeNumber > 0) {
-            $filters[] = "episode_number = {$episodeNumber}";
-        }
-
-        $result = $this->index()->search(null, [
+        $result = $this->meiliSearch($query, [
             'filter' => $filters,
             'sort' => [$sort.':'.$opposite, 'id:'.$opposite],
             'limit' => $size + 1,
@@ -93,7 +104,7 @@ final class PackSearch
         $first = $hits === [] ? null : $hits[0];
 
         return [
-            'packs' => $this->hydrateAll($hits),
+            'packs' => $this->hydrateAll($hits, $withBot),
             'total' => (int) $result->getEstimatedTotalHits(),
             'next' => null,
             'prev' => $hasPrev && $first !== null
@@ -102,16 +113,13 @@ final class PackSearch
         ];
     }
 
-    private function eloquentLastPage(Bot $bot, string $sort, string $direction, int $size, int $episodeNumber): array
+    private function eloquentLastPage(?int $botId, string $query, string $sort, string $direction, int $size, int $episodeNumber): array
     {
-        $query = $bot->packs();
-        if ($episodeNumber > 0) {
-            $query->where('episode_number', $episodeNumber);
-        }
+        $builder = $this->searchQuery($botId, $query, $episodeNumber);
 
         $column = self::KEYSET_COLUMNS[$sort] ?? null;
         if ($column === null) {
-            $paginator = (clone $query)->sorted($sort, $direction)->paginate($size, ['*'], 'page', 1);
+            $paginator = (clone $builder)->sorted($sort, $direction)->paginate($size, ['*'], 'page', 1);
 
             return [
                 'packs' => $paginator->getCollection(),
@@ -123,7 +131,7 @@ final class PackSearch
 
         $opposite = strtolower($direction) !== 'desc' ? 'desc' : 'asc';
 
-        $rows = (clone $query)
+        $rows = (clone $builder)
             ->orderBy($column, $opposite)
             ->orderBy('id', $opposite)
             ->limit($size + 1)
@@ -135,7 +143,7 @@ final class PackSearch
 
         return [
             'packs' => $rows,
-            'total' => $query->count(),
+            'total' => $builder->count(),
             'next' => null,
             'prev' => $hasPrev && $first !== null
                 ? $this->encodeCursor($sort, $direction, 'before', $first->{$column}, (int) $first->id)
@@ -143,16 +151,13 @@ final class PackSearch
         ];
     }
 
-    private function eloquentKeysetPage(Bot $bot, string $sort, string $direction, int $size, ?string $cursor, int $episodeNumber): array
+    private function eloquentKeysetPage(?int $botId, string $query, string $sort, string $direction, int $size, ?string $cursor, int $episodeNumber): array
     {
-        $query = $bot->packs();
-        if ($episodeNumber > 0) {
-            $query->where('episode_number', $episodeNumber);
-        }
+        $builder = $this->searchQuery($botId, $query, $episodeNumber);
 
         $column = self::KEYSET_COLUMNS[$sort] ?? null;
         if ($column === null) {
-            $paginator = (clone $query)->sorted($sort, $direction)->paginate($size, ['*'], 'page', 1);
+            $paginator = (clone $builder)->sorted($sort, $direction)->paginate($size, ['*'], 'page', 1);
 
             return [
                 'packs' => $paginator->getCollection(),
@@ -165,7 +170,7 @@ final class PackSearch
         $asc = strtolower($direction) !== 'desc';
 
         if ($cursor === null) {
-            $rows = (clone $query)
+            $rows = (clone $builder)
                 ->orderBy($column, $asc ? 'asc' : 'desc')
                 ->orderBy('id', $asc ? 'asc' : 'desc')
                 ->limit($size + 1)
@@ -177,7 +182,7 @@ final class PackSearch
 
             return [
                 'packs' => $rows,
-                'total' => $query->count(),
+                'total' => $builder->count(),
                 'next' => $hasNext && $last !== null
                     ? $this->encodeCursor($sort, $direction, 'after', $last->{$column}, (int) $last->id)
                     : null,
@@ -187,11 +192,11 @@ final class PackSearch
 
         $boundary = $this->decodeCursor($cursor);
         if ($boundary === null) {
-            return $this->botPage($bot, $sort, $direction, $size, null, $episodeNumber);
+            return $this->eloquentKeysetPage($botId, $query, $sort, $direction, $size, null, $episodeNumber);
         }
 
         $forward = ($boundary['o'] ?? 'after') === 'after';
-        $rows = $this->keysetQuery($query, $column, $asc, $forward, $boundary['v'], (int) $boundary['i'], $size + 1);
+        $rows = $this->keysetQuery($builder, $column, $asc, $forward, $boundary['v'], (int) $boundary['i'], $size + 1);
 
         $hasMore = $rows->count() > $size;
         $rows = $rows->slice(0, $size)->values();
@@ -200,7 +205,7 @@ final class PackSearch
 
         return [
             'packs' => $rows,
-            'total' => $query->count(),
+            'total' => $builder->count(),
             'next' => $forward
                 ? ($hasMore && $last !== null ? $this->encodeCursor($sort, $direction, 'after', $last->{$column}, (int) $last->id) : null)
                 : ($last !== null ? $this->encodeCursor($sort, $direction, 'after', $last->{$column}, (int) $last->id) : null),
@@ -210,22 +215,17 @@ final class PackSearch
         ];
     }
 
-    private function meiliKeysetPage(Bot $bot, string $sort, string $direction, int $size, ?string $cursor, int $episodeNumber): array
+    private function meiliKeysetPage(array $filters, string $query, string $sort, string $direction, int $size, ?string $cursor, bool $withBot): array
     {
         $asc = strtolower($direction) !== 'desc';
         $dir = $asc ? 'asc' : 'desc';
         $sortList = [$sort.':'.$dir, 'id:'.$dir];
 
-        $filters = ["bot_id = {$bot->id}"];
-        if ($episodeNumber > 0) {
-            $filters[] = "episode_number = {$episodeNumber}";
-        }
-
-        if (! isset(self::KEYSET_COLUMNS[$sort])) {
-            $result = $this->index()->search(null, ['filter' => $filters, 'sort' => $sortList, 'limit' => $size]);
+        if (! isset(self::MEILI_KEYSET_COLUMNS[$sort])) {
+            $result = $this->meiliSearch($query, ['filter' => $filters, 'sort' => $sortList, 'limit' => $size]);
 
             return [
-                'packs' => $this->hydrateAll($result->getHits()),
+                'packs' => $this->hydrateAll($result->getHits(), $withBot),
                 'total' => (int) $result->getEstimatedTotalHits(),
                 'next' => null,
                 'prev' => null,
@@ -233,14 +233,14 @@ final class PackSearch
         }
 
         if ($cursor === null) {
-            $result = $this->index()->search(null, ['filter' => $filters, 'sort' => $sortList, 'limit' => $size + 1]);
+            $result = $this->meiliSearch($query, ['filter' => $filters, 'sort' => $sortList, 'limit' => $size + 1]);
             $hits = $result->getHits();
             $hasNext = count($hits) > $size;
             $hits = array_slice($hits, 0, $size);
             $last = $hits === [] ? null : $hits[count($hits) - 1];
 
             return [
-                'packs' => $this->hydrateAll($hits),
+                'packs' => $this->hydrateAll($hits, $withBot),
                 'total' => (int) $result->getEstimatedTotalHits(),
                 'next' => $hasNext && $last !== null
                     ? $this->encodeCursor($sort, $direction, 'after', $last[$sort], (int) $last['id'])
@@ -251,11 +251,11 @@ final class PackSearch
 
         $boundary = $this->decodeCursor($cursor);
         if ($boundary === null) {
-            return $this->meiliKeysetPage($bot, $sort, $direction, $size, null, $episodeNumber);
+            return $this->meiliKeysetPage($filters, $query, $sort, $direction, $size, null, $withBot);
         }
 
         $forward = ($boundary['o'] ?? 'after') === 'after';
-        $result = $this->meiliKeysetSearch($filters, $sort, $dir, $asc, $forward, $boundary['v'], (int) $boundary['i'], $size + 1);
+        $result = $this->meiliKeysetSearch($filters, $query, $sort, $dir, $asc, $forward, $boundary['v'], (int) $boundary['i'], $size + 1);
         $hits = $result->getHits();
 
         if (! $forward) {
@@ -268,7 +268,7 @@ final class PackSearch
         $last = $hits === [] ? null : $hits[count($hits) - 1];
 
         return [
-            'packs' => $this->hydrateAll($hits),
+            'packs' => $this->hydrateAll($hits, $withBot),
             'total' => (int) $result->getEstimatedTotalHits(),
             'next' => $forward
                 ? ($hasMore && $last !== null ? $this->encodeCursor($sort, $direction, 'after', $last[$sort], (int) $last['id']) : null)
@@ -279,17 +279,49 @@ final class PackSearch
         ];
     }
 
-    private function meiliKeysetSearch(array $filters, string $sort, string $dir, bool $asc, bool $forward, $value, int $id, int $limit)
+    private function meiliKeysetSearch(array $filters, string $query, string $sort, string $dir, bool $asc, bool $forward, $value, int $id, int $limit)
     {
         $cmp = ($forward === $asc) ? '>' : '<';
         $fetch = $forward ? $dir : ($asc ? 'desc' : 'asc');
         $v = $this->meiliValue($sort, $value);
 
-        return $this->index()->search(null, [
+        return $this->meiliSearch($query, [
             'filter' => array_merge($filters, ["{$sort} {$cmp} {$v} OR ({$sort} = {$v} AND id {$cmp} {$id})"]),
             'sort' => [$sort.':'.$fetch, 'id:'.$fetch],
             'limit' => $limit,
         ]);
+    }
+
+    /**
+     * Run a Meilisearch search, adding matchingStrategy=all (ordered-term
+     * parity with the legacy REGEXP search) only when a query is present.
+     */
+    private function meiliSearch(string $query, array $params)
+    {
+        if ($query !== '') {
+            $params['matchingStrategy'] = 'all';
+        }
+
+        return $this->index()->search($query === '' ? null : $query, $params);
+    }
+
+    /** @return Builder<Pack> */
+    private function searchQuery(?int $botId, string $query, int $episodeNumber): Builder
+    {
+        $packs = Pack::ofActiveBots()
+            ->with('bot:id,name,batchenable');
+
+        if ($botId !== null) {
+            $packs->where('bot_id', $botId);
+        }
+        if ($query !== '') {
+            $packs->search($query);
+        }
+        if ($episodeNumber > 0) {
+            $packs->forEpisode($episodeNumber);
+        }
+
+        return $packs;
     }
 
     private function meiliValue(string $sort, $value): string
@@ -297,9 +329,9 @@ final class PackSearch
         return is_string($value) ? '"'.addslashes($value).'"' : (string) $value;
     }
 
-    private function hydrateAll(array $hits): Collection
+    private function hydrateAll(array $hits, bool $withBot): Collection
     {
-        return collect($hits)->map(fn (array $hit) => $this->hydrate($hit, false))->values();
+        return collect($hits)->map(fn (array $hit) => $this->hydrate($hit, $withBot))->values();
     }
 
     private function keysetQuery($query, string $column, bool $asc, bool $forward, $value, int $id, int $limit): Collection
@@ -345,46 +377,6 @@ final class PackSearch
         }
 
         return $decoded;
-    }
-
-    /**
-     * @return LengthAwarePaginator<Pack>
-     */
-    public function searchPage(string $query, ?int $botId, string $sort, string $direction, int $page, int $size, int $episodeNumber = 0): LengthAwarePaginator
-    {
-        if (! $this->enabled()) {
-            $packs = Pack::ofActiveBots()
-                ->with('bot:id,name,batchenable')
-                ->search($query)
-                ->forEpisode($episodeNumber)
-                ->sorted($sort, $direction);
-
-            if ($botId !== null) {
-                $packs->where('bot_id', $botId);
-            }
-
-            return $packs->paginate($size, ['*'], 'page', $page);
-        }
-
-        $filters = ['bot_active = true'];
-        if ($botId !== null) {
-            $filters[] = "bot_id = {$botId}";
-        }
-        if ($episodeNumber > 0) {
-            $filters[] = "episode_number = {$episodeNumber}";
-        }
-
-        return $this->meiliPaginate(
-            $query,
-            [
-                'filter' => $filters,
-                'sort' => [$this->sortString($sort, $direction)],
-                'matchingStrategy' => 'all',
-            ],
-            $page,
-            $size,
-            true
-        );
     }
 
     /**
@@ -539,23 +531,6 @@ final class PackSearch
         ];
     }
 
-    private function meiliPaginate(?string $query, array $params, int $page, int $size, bool $withBot): LengthAwarePaginator
-    {
-        $result = $this->index()->search($query, array_merge($params, [
-            'page' => $page,
-            'hitsPerPage' => $size,
-        ]));
-
-        $estimated = $result->getEstimatedTotalHits();
-        $total = $estimated !== null ? (int) $estimated : (int) $result->getTotalHits();
-
-        $items = array_map(fn (array $hit) => $this->hydrate($hit, $withBot), $result->getHits());
-
-        return new LengthAwarePaginator($items, $total, $size, $page, [
-            'path' => request()->url(),
-        ]);
-    }
-
     private function hydrate(array $hit, bool $withBot): Pack
     {
         $pack = new Pack();
@@ -579,10 +554,4 @@ final class PackSearch
         return $pack;
     }
 
-    private function sortString(string $sort, string $direction): string
-    {
-        $dir = strtolower($direction) === 'desc' ? 'desc' : 'asc';
-
-        return $sort.':'.$dir;
     }
-}
