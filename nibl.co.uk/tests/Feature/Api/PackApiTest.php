@@ -103,13 +103,23 @@ class PackApiTest extends TestCase
             ->assertJsonCount(0, 'data');
     }
 
-    public function test_search_paginates(): void
+    public function test_search_paginates_with_keyset_cursor(): void
     {
-        $this->getJson('/api/search/page?query=show&size=2&page=2')
+        $response = $this->getJson('/api/search/page?query=show&size=2&sort=number&direction=asc')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.number', 1)
+            ->assertJsonPath('data.1.number', 2)
+            ->assertJsonPath('meta.total', 3)
+            ->assertJsonPath('meta.prev', null)
+            ->assertNotNull($next = $response->json('meta.next'));
+
+        $this->getJson('/api/search/page?query=show&size=2&sort=number&direction=asc&cursor='.$next)
             ->assertOk()
             ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.number', 3)
             ->assertJsonPath('meta.total', 3)
-            ->assertJsonPath('meta.current_page', 2);
+            ->assertJsonPath('meta.next', null);
     }
 
     public function test_search_in_bot(): void
@@ -139,7 +149,6 @@ class PackApiTest extends TestCase
         $this->getJson('/api/packs/'.$this->bot->id.'/page?size='.(Pack::MAX_PAGE_SIZE + 1))->assertStatus(422);
         $this->getJson('/api/packs/'.$this->bot->id.'/page?sort=not_a_column')->assertStatus(422);
         $this->getJson('/api/packs/'.$this->bot->id.'/page?direction=sideways')->assertStatus(422);
-        $this->getJson('/api/packs/'.$this->bot->id.'/page?page=0')->assertStatus(422);
     }
 
     public function test_packs_of_inactive_bots_are_excluded(): void

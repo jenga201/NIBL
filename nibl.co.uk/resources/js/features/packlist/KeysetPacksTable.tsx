@@ -38,10 +38,11 @@ function NavButton({
 export function KeysetPacksTable({ source, sort, pageSize, enabled, columns, emptyMessage, onSortChange }: Props) {
     const [cursor, setCursor] = useState<string | null>(null);
     const botId = source.mode === 'bot' ? source.botId : null;
+    const query = source.query;
 
     useEffect(() => {
         setCursor(null);
-    }, [botId, sort.key, sort.direction, pageSize]);
+    }, [botId, query, sort.key, sort.direction, pageSize]);
 
     const { data, isLoading, isError } = useKeysetPacks({ source, sort, pageSize, cursor, enabled });
 

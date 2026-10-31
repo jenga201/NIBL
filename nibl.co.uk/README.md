@@ -38,23 +38,23 @@ App-specific settings live in `config/api.php`; sessions use the `file` driver w
 
 ## JSON API
 
-The site serves the NIBL bot/pack API directly from the `ooinuza` database — the old `api.nibl.co.uk` (`niblapi`) service is deprecated and no longer called. Routes live in `routes/api.php` (mounted under the `/api` prefix) and return standard Laravel JSON: `{"data": ...}` resources, plus `links` and paginator metadata under `meta` (`current_page`, `per_page`, `total`, ...) on the `/page` endpoints.
+The site serves the NIBL bot/pack API directly from the `ooinuza` database — the old `api.nibl.co.uk` (`niblapi`) service is deprecated and no longer called. Routes live in `routes/api.php` (mounted under the `/api` prefix). Pack listing and search endpoints return `{"data": [...]}` plus `meta` of the form `{"total", "per_page", "next", "prev"}` — **keyset (cursor) pagination**, not offset page numbers.
 
-`GET /api/packs/{botId}/page` is served from **Meilisearch** (`App\Infrastructure\Service\PackSearch`); MySQL remains the system of record and the `meilisearch:sync` worker (minute scheduler) re-indexes active bots only. Offline and `informative = 1` bots are excluded everywhere (`Bot::scopeActive()`). Pack listings use keyset pagination (`cursor`, plus first/last pages); search is tokenized and typo-tolerant — see `Plans/NIBL-MEILISEARCH/plan.md`.
+Pack listings and search (`/api/packs/{botId}/page`, `/api/search/page`, `/api/search/{botId}/page`) are served from **Meilisearch** (`App\Infrastructure\Service\PackSearch`); MySQL remains the system of record and the `meilisearch:sync` worker (minute scheduler) re-indexes active bots only. Offline and `informative = 1` bots are excluded everywhere (`Bot::scopeActive()`); only `/api/bots` still reads SQL. See `Plans/NIBL-MEILISEARCH/plan.md`.
 
 | Route | Purpose |
 |---|---|
 | `GET /api/bots` | All active bots (with pack counts) |
 | `GET /api/bots/{botId}` | A single bot |
 | `GET /api/packs/{botId}` | All packs of a bot |
-| `GET /api/packs/{botId}/page` | Paginated bot packs (`page`, `size`, `sort`, `direction`, `episode_number`) |
+| `GET /api/packs/{botId}/page` | Keyset-paged bot packs (`cursor`, `size`, `sort`, `direction`, `episode_number`) |
 | `GET /api/latest` | Latest packs, newest first (`size`, default 50) |
-| `GET /api/search` | Search all packs (`query` required, `episode_number` optional) |
-| `GET /api/search/page` | Paginated search |
-| `GET /api/search/{botId}` | Search within one bot |
-| `GET /api/search/{botId}/page` | Paginated search within one bot |
+| `GET /api/search` | Search all packs — unpaginated (`query` required) |
+| `GET /api/search/page` | Keyset-paged search (`query`, `cursor`, `size`, `sort`, `direction`) |
+| `GET /api/search/{botId}` | Search within one bot — unpaginated |
+| `GET /api/search/{botId}/page` | Keyset-paged search within one bot |
 
-`sort` accepts `name`, `number`, `size`, `sizekbits`, `episode_number`, `last_modified`, `bot_id` and `id`; `direction` accepts `asc`/`desc`. Pagination is 1-based (`page` default 1, `size` default 50, max 1000). Search is case-insensitive and every whitespace-separated term must appear in the pack name, in order (same semantics as the old API).
+`sort` accepts `name`, `number`, `size`, `sizekbits`, `episode_number`, `last_modified`, `bot_id` and `id`; `direction` accepts `asc`/`desc`. To page, pass the opaque `cursor` from `meta.next`/`meta.prev` back as `cursor`; omit it for the first page and pass `cursor=last` for the final page (`size` default 50, max 1000). Search is tokenized and typo-tolerant (Meilisearch); `meta.total` is an estimate, not an exact count.
 
 ## Updating dependencies
 

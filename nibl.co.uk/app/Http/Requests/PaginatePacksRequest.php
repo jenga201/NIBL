@@ -16,7 +16,6 @@ class PaginatePacksRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'page' => ['integer', 'min:1'],
             'size' => ['integer', 'min:1', 'max:'.Pack::MAX_PAGE_SIZE],
             'sort' => ['string', Rule::in(array_keys(Pack::SORTABLE))],
             'direction' => ['string', Rule::in(['asc', 'desc', 'ASC', 'DESC'])],
@@ -32,11 +31,6 @@ class PaginatePacksRequest extends FormRequest
         if ($this->filled('episodeNumber') && ! $this->filled('episode_number')) {
             $this->merge(['episode_number' => $this->query('episodeNumber')]);
         }
-    }
-
-    public function page(): int
-    {
-        return (int) $this->validated('page', 1);
     }
 
     public function size(): int
