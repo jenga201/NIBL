@@ -51,7 +51,7 @@ final class PackController extends Controller
             $request->size(),
         );
 
-        return new JsonResponse($json, 200, ['Content-Type' => 'application/json'], true);
+        return JsonResponse::fromJsonString($json);
     }
 
     public function latest(LatestPacksRequest $request): AnonymousResourceCollection
