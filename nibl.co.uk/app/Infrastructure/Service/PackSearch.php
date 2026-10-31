@@ -58,11 +58,89 @@ final class PackSearch
      */
     public function botPage(Bot $bot, string $sort, string $direction, int $size, ?string $cursor, int $episodeNumber = 0): array
     {
+        if ($cursor === 'last') {
+            return $this->enabled()
+                ? $this->meiliLastPage($bot, $sort, $direction, $size, $episodeNumber)
+                : $this->eloquentLastPage($bot, $sort, $direction, $size, $episodeNumber);
+        }
+
         if ($this->enabled()) {
             return $this->meiliKeysetPage($bot, $sort, $direction, $size, $cursor, $episodeNumber);
         }
 
         return $this->eloquentKeysetPage($bot, $sort, $direction, $size, $cursor, $episodeNumber);
+    }
+
+    private function meiliLastPage(Bot $bot, string $sort, string $direction, int $size, int $episodeNumber): array
+    {
+        $asc = strtolower($direction) !== 'desc';
+        $opposite = $asc ? 'desc' : 'asc';
+
+        $filters = ["bot_id = {$bot->id}"];
+        if ($episodeNumber > 0) {
+            $filters[] = "episode_number = {$episodeNumber}";
+        }
+
+        $result = $this->index()->search(null, [
+            'filter' => $filters,
+            'sort' => [$sort.':'.$opposite, 'id:'.$opposite],
+            'limit' => $size + 1,
+        ]);
+
+        $hits = $result->getHits();
+        $hasPrev = count($hits) > $size;
+        $hits = array_reverse(array_slice($hits, 0, $size));
+        $first = $hits === [] ? null : $hits[0];
+
+        return [
+            'packs' => $this->hydrateAll($hits),
+            'total' => (int) $result->getEstimatedTotalHits(),
+            'next' => null,
+            'prev' => $hasPrev && $first !== null
+                ? $this->encodeCursor($sort, $direction, 'before', $first[$sort], (int) $first['id'])
+                : null,
+        ];
+    }
+
+    private function eloquentLastPage(Bot $bot, string $sort, string $direction, int $size, int $episodeNumber): array
+    {
+        $query = $bot->packs();
+        if ($episodeNumber > 0) {
+            $query->where('episode_number', $episodeNumber);
+        }
+
+        $column = self::KEYSET_COLUMNS[$sort] ?? null;
+        if ($column === null) {
+            $paginator = (clone $query)->sorted($sort, $direction)->paginate($size, ['*'], 'page', 1);
+
+            return [
+                'packs' => $paginator->getCollection(),
+                'total' => $paginator->total(),
+                'next' => null,
+                'prev' => null,
+            ];
+        }
+
+        $opposite = strtolower($direction) !== 'desc' ? 'desc' : 'asc';
+
+        $rows = (clone $query)
+            ->orderBy($column, $opposite)
+            ->orderBy('id', $opposite)
+            ->limit($size + 1)
+            ->get();
+
+        $hasPrev = $rows->count() > $size;
+        $rows = $rows->slice(0, $size)->reverse()->values();
+        $first = $rows->first();
+
+        return [
+            'packs' => $rows,
+            'total' => $query->count(),
+            'next' => null,
+            'prev' => $hasPrev && $first !== null
+                ? $this->encodeCursor($sort, $direction, 'before', $first->{$column}, (int) $first->id)
+                : null,
+        ];
     }
 
     private function eloquentKeysetPage(Bot $bot, string $sort, string $direction, int $size, ?string $cursor, int $episodeNumber): array

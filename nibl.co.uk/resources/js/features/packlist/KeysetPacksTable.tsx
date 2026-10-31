@@ -62,11 +62,13 @@ export function KeysetPacksTable({ source, sort, pageSize, enabled, columns, emp
 
     const pagination = (
         <div className="my-3 mx-auto w-full sm:w-1/2 flex items-center justify-between gap-4">
+            <NavButton disabled={!meta.prev} onClick={() => setCursor(null)} label="« First" />
             <NavButton disabled={!meta.prev} onClick={() => meta.prev && setCursor(meta.prev)} label="← Previous" />
             <span className="text-xs tabular-nums text-gray-500 dark:text-gray-400">
                 {meta.total.toLocaleString()} packs
             </span>
             <NavButton disabled={!meta.next} onClick={() => meta.next && setCursor(meta.next)} label="Next →" />
+            <NavButton disabled={!meta.next} onClick={() => setCursor('last')} label="Last »" />
         </div>
     );
 
