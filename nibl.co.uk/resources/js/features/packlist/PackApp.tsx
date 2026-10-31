@@ -5,6 +5,7 @@ import { copyToClipboard } from './clipboard';
 import { buildColumns } from './columns';
 import { formatBatchXDCC } from './format';
 import { InfinitePacksTable } from './InfinitePacksTable';
+import { KeysetPacksTable } from './KeysetPacksTable';
 import { PageSizeSelect } from './PageSizeSelect';
 import { PaginatedPacksTable } from './PaginatedPacksTable';
 import { SearchBox } from './SearchBox';
@@ -25,6 +26,7 @@ export function PackApp({ botId, botName, batchEnabled }: Props) {
     const showBot = botId === undefined;
     const hasValidQuery = query.trim().length >= 3;
     const enabled = !showBot || hasValidQuery;
+    const isBotListing = botId !== undefined && !hasValidQuery;
 
     const source: PackListSource =
         botId !== undefined
@@ -131,6 +133,16 @@ export function PackApp({ botId, botName, batchEnabled }: Props) {
                         <InfinitePacksTable
                             source={source}
                             sort={sortState}
+                            enabled={enabled}
+                            columns={columns}
+                            emptyMessage={emptyMessage}
+                            onSortChange={handleSortChange}
+                        />
+                    ) : isBotListing ? (
+                        <KeysetPacksTable
+                            source={source}
+                            sort={sortState}
+                            pageSize={pageSize}
                             enabled={enabled}
                             columns={columns}
                             emptyMessage={emptyMessage}

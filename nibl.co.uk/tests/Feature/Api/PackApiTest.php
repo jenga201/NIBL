@@ -40,17 +40,26 @@ class PackApiTest extends TestCase
         $this->getJson('/api/packs/999999')->assertNotFound();
     }
 
-    public function test_bot_packs_page_paginates_and_sorts(): void
+    public function test_bot_packs_page_uses_keyset_cursor_and_total(): void
     {
-        $this->getJson('/api/packs/'.$this->bot->id.'/page?page=1&size=2&sort=number&direction=desc')
+        $response = $this->getJson('/api/packs/'.$this->bot->id.'/page?size=2&sort=number&direction=desc')
             ->assertOk()
             ->assertJsonCount(2, 'data')
             ->assertJsonPath('data.0.number', 3)
             ->assertJsonPath('data.1.number', 2)
-            ->assertJsonPath('meta.current_page', 1)
-            ->assertJsonPath('meta.per_page', 2)
             ->assertJsonPath('meta.total', 3)
-            ->assertJsonPath('meta.last_page', 2);
+            ->assertJsonPath('meta.per_page', 2)
+            ->assertJsonPath('meta.prev', null)
+            ->assertJsonStructure(['meta' => ['total', 'per_page', 'next', 'prev']]);
+
+        $next = $response->json('meta.next');
+        $this->assertNotNull($next);
+
+        $this->getJson('/api/packs/'.$this->bot->id.'/page?size=2&sort=number&direction=desc&cursor='.$next)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.number', 1)
+            ->assertJsonPath('meta.total', 3);
     }
 
     public function test_bot_packs_page_filters_by_episode_number(): void
