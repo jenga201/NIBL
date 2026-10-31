@@ -18,7 +18,7 @@
 #   4. Seed .env (first checkout) and MySQL backups (if missing); enable Docker
 #      IPv6 (first checkout, via sudo); create the my-bridge network.
 #   5. docker compose build + up for the whole stack.
-#   6. Wait for niblmysql healthy, clean up one-shot sidecars, run migrations.
+#   6. Wait for niblmysql healthy, bootstrap the app user + run Laravel migrations.
 #   7. Verify: container states + an HTTP check through swag.
 #
 # Prerequisites:
@@ -49,7 +49,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOCAL_ENV_FILE="$SCRIPT_DIR/../.env"      # on the machine running this script
 REMOTE_ENV_FILE="$REMOTE_DIR/.env"        # on the production host
 
-# Local MySQL backups, uploaded on the first deploy so migrate.sh can restore
+# Local MySQL backups, uploaded on the first deploy so bootstrap.sh can restore
 # the database when the fresh host's database is empty.
 LOCAL_BACKUP_DIR="$SCRIPT_DIR/../niblmysql/backup"
 
@@ -138,7 +138,7 @@ fi
 ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" "[ -s '$REMOTE_ENV_FILE' ]" \
   || fail "$REMOTE_ENV_FILE is missing or empty"
 
-# Seed MySQL backups if the host has none yet — migrate.sh needs one to restore
+# Seed MySQL backups if the host has none yet — bootstrap.sh needs one to restore
 # an empty database. This also covers a re-deploy onto a freshly cloned host.
 if ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" 'bash -s' "$REMOTE_DIR" <<'REMOTE_EOF'
 root=$1
@@ -181,10 +181,10 @@ docker network ls --format '{{.Name}}' | grep -qx my-bridge \
   || docker network create -d bridge my-bridge
 
 docker compose build --pull
-# `up -d` starts the whole stack; depends_on (niblmysql healthy) sequences it,
-# and the one-shot mysql-init sidecar (restart: "no") provisions the app DB user
-# and exits 0. Deliberately NOT `up --wait`: --wait hangs/fails on that sidecar.
-docker compose up -d
+# `up -d` starts the whole stack; depends_on (niblmysql healthy) sequences it.
+# The app DB user and pending schema migrations are applied afterwards by
+# niblmysql/bootstrap.sh.
+docker compose up -d --remove-orphans
 
 # Wait for the niblmysql container's own healthcheck to report healthy.
 status="none"
@@ -198,33 +198,10 @@ done
 [ "$status" = "healthy" ] || { echo "ERROR: niblmysql not healthy after waiting"; exit 1; }
 echo "niblmysql: $status"
 
-# Remove any one-shot sidecar containers (compose `restart: "no"`) — e.g.
-# mysql-init, which provisions the app DB user and exits 0. Long-running
-# services all use `restart: unless-stopped` and are left alone.
-cleanup_sidecars() {
-  local cid policy state code
-  for cid in $(docker compose ps -a -q 2>/dev/null); do
-    policy=$(docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' "$cid" 2>/dev/null || true)
-    [ "$policy" = "no" ] || continue
-    state="running"
-    for _ in $(seq 1 24); do
-      state=$(docker inspect -f '{{.State.Status}}' "$cid" 2>/dev/null || echo missing)
-      case "$state" in exited|missing) break ;; esac
-      sleep 5
-    done
-    code=$(docker inspect -f '{{.State.ExitCode}}' "$cid" 2>/dev/null || echo -1)
-    docker rm -f "$cid" >/dev/null 2>&1 || true
-    if [ "$state" = "exited" ] && [ "$code" != "0" ]; then
-      echo "ERROR: one-shot sidecar $cid exited with code $code" >&2
-      exit 1
-    fi
-    echo "cleaned up one-shot sidecar $cid"
-  done
-}
-cleanup_sidecars
-
-# Apply pending schema migrations (idempotent; see niblmysql/migrate.sh).
-bash niblmysql/migrate.sh
+# Bootstrap (restore backup if empty + provision the app user), then apply the
+# schema via Laravel migrations (nibl.co.uk/database/migrations).
+bash niblmysql/bootstrap.sh
+docker compose run --rm niblcouk php artisan migrate --force
 
 # Let the app containers come up, then report their states.
 sleep 10

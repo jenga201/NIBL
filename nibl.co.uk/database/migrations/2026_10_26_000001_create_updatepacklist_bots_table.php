@@ -23,13 +23,15 @@ return new class extends Migration
             $table->string('url', 200);
             $table->string('type', 10);
             $table->string('owner', 255)->nullable();
-            $table->integer('status_id')->index();
+            $table->integer('status_id');
             $table->dateTime('last_seen');
             $table->dateTime('last_processed');
-            $table->tinyInteger('informative')->default(0);
+            $table->tinyInteger('informative');
             $table->boolean('batchenable')->default(true);
             $table->boolean('external')->default(false);
             $table->integer('parser_id')->default(0);
+
+            $table->foreign('status_id')->references('id')->on('updatepacklist_status');
         });
     }
 

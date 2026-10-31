@@ -19,13 +19,21 @@ return new class extends Migration
 
         Schema::create('updatepacklist_packs', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->integer('bot_id')->index();
-            $table->integer('number')->index();
-            $table->text('name')->nullable();
+            $table->integer('bot_id');
+            $table->integer('number');
+            $table->string('name', 300);
             $table->string('size', 8);
             $table->bigInteger('sizekbits')->default(0);
             $table->integer('episode_number')->nullable();
-            $table->dateTime('last_modified')->index();
+            $table->dateTime('last_modified');
+
+            $table->unique(['bot_id', 'number'], 'updatepacklist_packs_bot_number');
+            $table->index('number', 'packid');
+            $table->index('last_modified', 'last_modified');
+            $table->index(['bot_id', 'sizekbits'], 'updatepacklist_packs_bot_sizekbits');
+            $table->index(['bot_id', 'name'], 'bot_name');
+            $table->foreign('bot_id', 'updatepacklist_packs_bot_fk')
+                ->references('id')->on('updatepacklist_bots')->onDelete('cascade');
         });
     }
 
