@@ -10,20 +10,24 @@ Compile and Run Ooinuza Docker Container
 	Docker
 
 ## Database
+
+> Automated now: the `ooinuza` user (`caching_sha2_password`) and the full schema
+> are provisioned by `niblmysql/bootstrap.sh` + `php artisan migrate --force`.
+> The manual steps below are historical only.
+
 #### Create mysql container
 ```
 docker network create -d bridge my-bridge
-docker pull mysql:8
-docker run --network my-bridge --name niblmysql -e MYSQL_ROOT_PASSWORD={somerootpassword} -d mysql
-docker exec -i niblmysql mysql -uroot -p{somerootpassword} < db/ooinuza.sql
+docker pull mysql:8.4
+docker run --network my-bridge --name niblmysql -e MYSQL_ROOT_PASSWORD={somerootpassword} -d mysql:8.4
 ```
 
 #### Create mysql user
 ```
 docker exec -it niblmysql bash
-mysql -u root -p{somerootpassword}
-CREATE USER 'ooinuza'@'172.18.0.%' IDENTIFIED BY 'niblempire';
-GRANT ALL PRIVILEGES ON 'ooinuza'.* TO 'ooinuza'@'172.18.0.%';
+mysql -u root -p'{somerootpassword}'
+CREATE USER 'ooinuza'@'%' IDENTIFIED WITH caching_sha2_password BY '...';
+GRANT ALL PRIVILEGES ON ooinuza.* TO 'ooinuza'@'%';
 FLUSH PRIVILEGES;
 ```
 ## Run with Docker Compose
@@ -44,7 +48,7 @@ Unit tests (JUnit 5) run inside the Docker build stage and gate the image: if a 
 ```
 docker compose build    # runs mvn -B clean package -> surefire
 ```
-The tests are non-destructive: they run against an in-memory H2 database (MySQL compatibility mode) seeded from `src/test/resources/schema.sql` (derived from the canonical `niblmysql` schema) with fake bot/pack data - they never touch the production MySQL database or IRC.
+The tests are non-destructive: they run against an in-memory H2 database (MySQL compatibility mode) seeded from `src/test/resources/schema.sql` with fake bot/pack data - they never touch the production MySQL database or IRC.
 
 Restarting a container does NOT re-run the tests; they only run when the image is rebuilt (i.e. after `pom.xml` or `src/` changes):
 ```

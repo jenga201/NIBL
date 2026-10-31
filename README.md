@@ -35,8 +35,11 @@ docker compose up -d --build
 ```
 
 `docker compose up` starts everything in dependency order via `depends_on`:
-`niblmysql` (waits healthy) → `niblirc` + `niblcouk` → `swag`. The one-shot
-`mysql-init` sidecar provisions the application DB user on every start and exits.
+`niblmysql` (waits healthy) → `niblirc` + `niblcouk` + `redis` → `swag`.
+The application DB user and schema are applied separately (which
+`scripts/deploy.sh` automates both):
+`niblmysql/bootstrap.sh` then
+`docker compose run --rm niblcouk php artisan migrate --force`.
 
 ## Configuration
 
@@ -62,7 +65,7 @@ NIBL/
 ├── docker-compose.yml # the whole stack
 ├── nibl.co.uk/        # Laravel website (Dockerfile builds PHP + Node image)
 ├── niblirc/           # Java IRC bot (Dockerfile builds the fat jar)
-├── niblmysql/         # MySQL schema, migrations, and scripts
+├── niblmysql/         # MySQL bootstrap (backup restore + user provisioning), backup scripts
 ├── data/              # runtime host data (gitignored), one subdir per project
 │   ├── niblmysql/     #   MySQL datadir
 │   ├── nibl.co.uk/    #   Laravel var/ (cache, sessions, app data)
