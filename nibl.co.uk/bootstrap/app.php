@@ -6,6 +6,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schedule;
 use Symfony\Component\HttpFoundation\Response;
 
 $app = Application::configure(basePath: dirname(__DIR__))
@@ -54,6 +55,9 @@ $app = Application::configure(basePath: dirname(__DIR__))
 
             return $response;
         });
+    })
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->command('packlists:warm')->everyMinute();
     })->create();
 
 // The persistent var/ volume (bind-mounted in Docker) doubles as Laravel's

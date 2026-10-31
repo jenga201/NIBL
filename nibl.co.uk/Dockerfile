@@ -30,8 +30,8 @@ RUN apt-get update \
     && docker-php-ext-install -j"$(nproc)" \
         pdo_mysql \
         zip \
-    && pecl install apcu \
-    && docker-php-ext-enable apcu \
+    && pecl install apcu redis \
+    && docker-php-ext-enable apcu redis \
     && a2enmod rewrite remoteip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*

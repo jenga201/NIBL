@@ -21,4 +21,7 @@ php /var/www/html/artisan view:cache || true
 
 chown -R www-data:www-data /var/www/html/var /var/www/html/bootstrap/cache
 
+# Background scheduler: fires packlists:warm (cache-warmer poll) and future jobs.
+php /var/www/html/artisan schedule:work >/dev/null 2>&1 &
+
 apache2-foreground
