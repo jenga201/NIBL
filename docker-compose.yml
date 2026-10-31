@@ -5,7 +5,7 @@ services:
     image: mysql:8.4.13
     container_name: niblmysql
     user: "1000:1000"
-    command: mysqld --socket=/tmp/mysql.sock --pid-file=/tmp/mysqld.pid --log-error=/logs/mysql-error.log
+    command: mysqld --socket=/tmp/mysql.sock --pid-file=/tmp/mysqld.pid --log-error=/logs/mysql-error.log --innodb-buffer-pool-size=1073741824 --innodb-buffer-pool-instances=8 --innodb-redo-log-capacity=1073741824
     restart: unless-stopped
     cap_drop:
       - ALL

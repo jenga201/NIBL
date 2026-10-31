@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.pircbotx.Colors;
 import org.pircbotx.dcc.SendChat;
 import org.pircbotx.hooks.events.MessageEvent;
@@ -207,9 +208,10 @@ public class UpdatePackListDAO extends DataAccessObject {
 	}
 
 	/**
-	 * Persist a new pack listing using the smallest possible set of statements:
-	 * packs present only in the new listing are inserted, packs whose contents
-	 * changed are updated in place, and packs no longer present are deleted.
+	 * Persist a new pack listing with the smallest possible set of statements.
+	 * Packs are matched to their stored rows by stable file identity (name),
+	 * so a bot that merely reorders/renumbers its list only rewrites the
+	 * shifted {@code number}s instead of delete+inserting every affected pack.
 	 * Unchanged packs are left untouched so their {@code last_modified} stays
 	 * stable (it drives the "latest packs" ordering).
 	 */
@@ -217,17 +219,17 @@ public class UpdatePackListDAO extends DataAccessObject {
 		try {
 			List<Pack> dbPacks = getBotPackListFromDatabase(bot);
 
-			Map<Integer, Pack> oldByNumber = new HashMap<Integer, Pack>();
+			Map<String, Pack> oldByName = new HashMap<String, Pack>();
 			for (Pack old : dbPacks) {
-				oldByNumber.put(old.getNumber(), old);
+				oldByName.put(packKey(old), old);
 			}
 
-			HashSet<Integer> newNumbers = new HashSet<Integer>();
+			HashSet<String> newNames = new HashSet<String>();
 			for (Pack pack : bot.getListing()) {
-				newNumbers.add(pack.getNumber());
+				newNames.add(packKey(pack));
 			}
 
-			String updateSql = "UPDATE " + _PACKS_TABLE + " SET name=?, size=?, sizekbits=?, episode_number=?, last_modified=? WHERE id=?";
+			String updateSql = "UPDATE " + _PACKS_TABLE + " SET number=?, name=?, size=?, sizekbits=?, episode_number=?, last_modified=? WHERE id=?";
 			String insertSql = "INSERT INTO " + _PACKS_TABLE + " (bot_id, number, name, size, sizekbits, episode_number, last_modified) VALUES (?,?,?,?,?,?,?)";
 			String deleteSql = "DELETE FROM " + _PACKS_TABLE + " WHERE id=?";
 
@@ -236,7 +238,7 @@ public class UpdatePackListDAO extends DataAccessObject {
 				 PreparedStatement delete = getConnection().prepareStatement(deleteSql)) {
 
 				for (Pack pack : bot.getListing()) {
-					Pack old = oldByNumber.get(pack.getNumber());
+					Pack old = oldByName.get(packKey(pack));
 					if (old == null) {
 						insert.setInt(1, pack.getBotId());
 						insert.setInt(2, pack.getNumber());
@@ -247,18 +249,19 @@ public class UpdatePackListDAO extends DataAccessObject {
 						insert.setTimestamp(7, pack.getLastModified());
 						insert.addBatch();
 					} else if (isChanged(old, pack)) {
-						update.setString(1, pack.getName());
-						update.setString(2, pack.getSize());
-						update.setLong(3, pack.getSizeKBits());
-						update.setInt(4, pack.getEpisodeNumber());
-						update.setTimestamp(5, pack.getLastModified());
-						update.setInt(6, old.getId());
+						update.setInt(1, pack.getNumber());
+						update.setString(2, pack.getName());
+						update.setString(3, pack.getSize());
+						update.setLong(4, pack.getSizeKBits());
+						update.setInt(5, pack.getEpisodeNumber());
+						update.setTimestamp(6, pack.getLastModified());
+						update.setInt(7, old.getId());
 						update.addBatch();
 					}
 				}
 
 				for (Pack old : dbPacks) {
-					if (!newNumbers.contains(old.getNumber())) {
+					if (!newNames.contains(packKey(old))) {
 						delete.setInt(1, old.getId());
 						delete.addBatch();
 					}
@@ -273,10 +276,18 @@ public class UpdatePackListDAO extends DataAccessObject {
 		}
 	}
 
+	/** Stable identity for a pack row. A bot never lists two files with the
+	 *  same name, so the filename survives renumbering/reordering. */
+	private static String packKey(Pack pack) {
+		return pack.getName() == null ? "" : pack.getName();
+	}
+
 	private static boolean isChanged(Pack old, Pack pack) {
-		return !old.getName().equals(pack.getName())
-				|| !old.getSize().equals(pack.getSize())
-				|| !old.getSizeKBits().equals(pack.getSizeKBits());
+		return old.getNumber() != pack.getNumber()
+				|| !Objects.equals(old.getName(), pack.getName())
+				|| !Objects.equals(old.getSize(), pack.getSize())
+				|| !Objects.equals(old.getSizeKBits(), pack.getSizeKBits())
+				|| old.getEpisodeNumber() != pack.getEpisodeNumber();
 	}
 
 	public void addNewBot(AbstractDistroBot bot) {
