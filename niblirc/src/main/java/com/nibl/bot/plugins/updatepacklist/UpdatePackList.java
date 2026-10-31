@@ -6,7 +6,6 @@ import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
 
 import org.pircbotx.hooks.events.MessageEvent;
 import org.pircbotx.hooks.events.ModeEvent;
@@ -174,7 +173,7 @@ public class UpdatePackList extends Service {
 			if (filename.substring(filename.length() - 4, filename.length()).equals(".txt")) {
 				XdccDistroBot bot = (XdccDistroBot)UpdatePackListFunctions.getBot(nick);
 				if ( bot != null ) {
-					File file = new File(_myBot.getProperty("download_dir").replaceAll("---", Matcher.quoteReplacement("\\")) + nick.replaceAll("\\|", ""));
+					File file = new File(_myBot.getProperty("download_dir").replaceAll("---", "/") + "/" + nick.replaceAll("\\|", ""));
 					event.accept(file).transfer(); // blocking
 					bot.processPackListFromBot(file);
 				} else {
