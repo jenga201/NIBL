@@ -186,10 +186,11 @@ docker network ls --format '{{.Name}}' | grep -qx my-bridge \
   || docker network create -d bridge my-bridge
 
 docker compose build --pull
-# `up -d` starts the whole stack; depends_on (niblmysql healthy) sequences it.
-# The app DB user and pending schema migrations are applied afterwards by
-# niblmysql/bootstrap.sh.
-docker compose up -d --remove-orphans
+
+# Bring MySQL up first, then provision the app user (bootstrap.sh) BEFORE
+# starting niblcouk: its entrypoint runs `php artisan migrate` on startup and
+# needs the user to exist.
+docker compose up -d niblmysql
 
 # Wait for the niblmysql container's own healthcheck to report healthy.
 status="none"
@@ -203,14 +204,29 @@ done
 [ "$status" = "healthy" ] || { echo "ERROR: niblmysql not healthy after waiting"; exit 1; }
 echo "niblmysql: $status"
 
-# Bootstrap (restore backup if empty + provision the app user), then apply the
-# schema via Laravel migrations (nibl.co.uk/database/migrations), then backfill
-# the Meilisearch index (later changes are picked up by the minute scheduler).
 bash niblmysql/bootstrap.sh
-docker compose run --rm niblcouk php artisan migrate --force
+
+# Start the rest of the stack. niblcouk's start-apache applies pending
+# migrations before Apache serves, so new migrations run automatically on every
+# deploy/rebuild.
+docker compose up -d --remove-orphans
+
+# Wait for niblcouk to become healthy (i.e. its entrypoint has run migrations
+# and Apache is up) before the Meilisearch backfill.
+status="none"
+for _ in $(seq 1 24); do
+  status=$(docker inspect -f '{{.State.Health.Status}}' niblcouk 2>/dev/null || echo none)
+  if [ "$status" = "healthy" ]; then
+    break
+  fi
+  sleep 5
+done
+echo "niblcouk: $status"
+
+# Backfill the Meilisearch index (later changes are picked up by the scheduler).
 docker compose run --rm niblcouk php artisan meilisearch:sync
 
-# Let the app containers come up, then report their states.
+# Report container states.
 sleep 10
 for c in niblirc niblcouk swag; do
   state=$(docker inspect -f '{{.State.Status}}' "$c" 2>/dev/null || echo missing)
