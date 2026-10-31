@@ -135,7 +135,7 @@ class PackApiTest extends TestCase
 
     public function test_packs_of_inactive_bots_are_excluded(): void
     {
-        $inactive = $this->createBot('Dead|Bot', statusId: Bot::STATUS_ACTIVE + 1);
+        $inactive = $this->createBot('Dead|Bot', statusId: 0); // 0 = OFFLINE
         $this->createPack($inactive, 9, '[Group] Show Alpha - 09 [1080p].mkv', modified: '2026-02-01 00:00:00');
 
         $this->getJson('/api/search?query=show alpha')

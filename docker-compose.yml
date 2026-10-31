@@ -36,38 +36,6 @@ services:
     networks:
       - appnet
 
-  mysql-init:
-    image: mysql:8.4.13
-    container_name: niblmysql-init
-    restart: "no"
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    depends_on:
-      niblmysql:
-        condition: service_healthy
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
-      SQL_USER: ${SQL_USER:?Set SQL_USER in .env}
-      SQL_PASSWORD: ${SQL_PASSWORD:?Set SQL_PASSWORD in .env}
-    entrypoint: ["sh", "-c"]
-    command:
-      - |
-        MYSQL_PWD="$$MYSQL_ROOT_PASSWORD" mysql -h niblmysql -uroot -e "
-        CREATE USER IF NOT EXISTS '$$SQL_USER'@'%' IDENTIFIED BY '$$SQL_PASSWORD';
-        ALTER USER '$$SQL_USER'@'%' IDENTIFIED BY '$$SQL_PASSWORD';
-        GRANT ALL PRIVILEGES ON ooinuza.* TO '$$SQL_USER'@'%';
-        FLUSH PRIVILEGES;"
-        echo "mysql-init: user '$$SQL_USER' provisioned with ALL PRIVILEGES on ooinuza.*"
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "1"
-    networks:
-      - appnet
-
   niblirc:
     build:
       context: ./niblirc

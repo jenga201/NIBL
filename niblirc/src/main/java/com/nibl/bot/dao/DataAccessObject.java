@@ -14,7 +14,8 @@ public abstract class DataAccessObject extends BotExtend {
 	public DataAccessObject(Bot myBot) {
 		super(myBot);
 		_connection = _myBot.getDatabase().getConnection();
-		createTables();
+		// Schema is owned by Laravel migrations (nibl.co.uk/database/migrations);
+		// DAOs no longer create or seed tables at startup.
 	}
 	
 	public final Connection getConnection()

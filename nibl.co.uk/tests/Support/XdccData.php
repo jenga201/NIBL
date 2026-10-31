@@ -4,11 +4,17 @@ namespace Tests\Support;
 
 use App\Models\Bot;
 use App\Models\Pack;
+use Illuminate\Support\Facades\DB;
 
 trait XdccData
 {
     protected function createBot(string $name, int $statusId = Bot::STATUS_ACTIVE): Bot
     {
+        DB::table('updatepacklist_status')->insertOrIgnore([
+            ['id' => 0, 'description' => 'OFFLINE'],
+            ['id' => 1, 'description' => 'ONLINE'],
+        ]);
+
         return Bot::create([
             'name' => $name,
             'url' => 'irc://irc.example.com/'.$name,
