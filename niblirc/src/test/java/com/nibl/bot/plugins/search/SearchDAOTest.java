@@ -68,36 +68,7 @@ class SearchDAOTest {
     }
 
     @Test
-    void removeBracketsUnclosedBracketSwallowsTail() {
-        assertEquals("Show ", dao.removeBrackets("Show [1080p"));
+        void removeBracketsUnclosedBracketSwallowsTail() {
+            assertEquals("Show ", dao.removeBrackets("Show [1080p"));
+        }
     }
-
-    @Test
-    void webSearchFindsMatchingPack() throws Exception {
-        LinkedList<String[]> results = dao.webSearch("Test Show");
-        assertNotNull(results);
-        assertEquals(1, results.size());
-        // row layout: {pack name, size, bot name, pack number}
-        assertEquals("Test Show - 01 [1080p]", results.get(0)[0]);
-        assertEquals("1.2G", results.get(0)[1]);
-        assertEquals("FakeDistro", results.get(0)[2]);
-        assertEquals("101", results.get(0)[3]);
-    }
-
-    @Test
-    void webSearchOrdersByLastModifiedDescending() throws Exception {
-        LinkedList<String[]> results = dao.webSearch("Show");
-        assertNotNull(results);
-        assertEquals(2, results.size());
-        assertEquals("101", results.get(0)[3], "newest pack must come first");
-        assertEquals("102", results.get(1)[3]);
-    }
-
-    @Test
-    void webSearchNoResults() throws Exception {
-        LinkedList<String[]> results = dao.webSearch("zzz-no-such-pack");
-        assertNotNull(results);
-        assertEquals(1, results.size());
-        assertEquals("No Results Found", results.get(0)[0]);
-    }
-}

@@ -67,6 +67,8 @@ services:
       DB_SERVER: ${SQL_HOST:-niblmysql}
       DB_PORT: ${SQL_PORT:-3306}
       DB_NAME: ${SQL_DATABASE:-ooinuza}
+      MEILI_HOST: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in .env}
     ports:
       - "46571:46571"
       - "46572:46572"
