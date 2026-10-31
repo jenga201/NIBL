@@ -413,13 +413,20 @@ final class PackSearch
     // ------------------------------------------------------------------
 
     /**
-     * Re-index every bot whose packs, status or informative flag changed since
-     * the last run, and de-index any bot deleted from MySQL. Returns the number
-     * of bots touched.
+     * Re-index every active bot (online and non-informative) whose packs,
+     * status or informative flag changed since the last run, de-index any bot
+     * that went offline or informative, and drop docs for bots deleted from
+     * MySQL. Returns the number of bots touched.
      */
     public function sync(): int
     {
         $this->configure();
+
+        // Only active bots are ever indexable. Purge any leftover inactive docs
+        // so the read model stays exactly equal to the listable bots. Idempotent:
+        // once the index holds only active bots this filter matches nothing, and
+        // no new doc is ever written with bot_active = false.
+        $this->index()->deleteDocuments(['filter' => 'bot_active = false']);
 
         $bots = Bot::query()->get(['id', 'name', 'status_id', 'informative', 'batchenable', 'last_processed']);
         $synced = DB::table('meilisearch_sync')->get()->keyBy('bot_id');
@@ -427,6 +434,7 @@ final class PackSearch
         $indexed = 0;
         foreach ($bots as $bot) {
             $row = $synced->get((int) $bot->id);
+            $active = (int) $bot->status_id === Bot::STATUS_ACTIVE && (int) $bot->informative === 0;
             $dirty = $row === null
                 || (string) $row->last_processed !== (string) $bot->last_processed
                 || (int) $row->status_id !== (int) $bot->status_id
@@ -436,7 +444,15 @@ final class PackSearch
                 continue;
             }
 
-            $this->indexBot($bot);
+            if ($active) {
+                $this->indexBot($bot);
+            } else {
+                // Offline or informative: packs are no longer queryable. Drop
+                // them immediately rather than waiting on the next purge, since
+                // a bot that just flipped offline still has bot_active = true
+                // docs in the index.
+                $this->index()->deleteDocuments(['filter' => "bot_id = {$bot->id}"]);
+            }
 
             DB::table('meilisearch_sync')->updateOrInsert(
                 ['bot_id' => $bot->id],
