@@ -19,6 +19,13 @@ rm -rf /var/www/html/var/framework/views/*
 php /var/www/html/artisan config:cache || true
 php /var/www/html/artisan view:cache || true
 
+# Apply any pending database migrations before serving traffic. Idempotent and
+# runs on every start, so a redeploy never ships with a stale schema.
+if ! php /var/www/html/artisan migrate --force; then
+  echo "ERROR: php artisan migrate failed; aborting container startup" >&2
+  exit 1
+fi
+
 chown -R www-data:www-data /var/www/html/var /var/www/html/bootstrap/cache
 
 # Background scheduler: fires meilisearch:sync (Meilisearch index sync) and future jobs.

@@ -24,7 +24,7 @@ The Dockerfile is the only build pipeline:
 * **Node stage** — `npm ci` then `npm run build` compiles `resources/css` + `resources/js` (Tailwind 4 via `@tailwindcss/vite`) into `public/build/` with a Vite manifest. Built assets are **not** committed; they exist only inside the image.
 * **PHP stage** — `composer install --no-dev -a` installs dependencies with an optimized, authoritative autoloader and runs `artisan package:discover`.
 
-On every container start, `etc/docker/start-apache` creates the `var/framework/*` + `var/logs` directories, clears compiled views from previous images (OPcache runs with `validate_timestamps=0`), runs `artisan config:cache` and `artisan view:cache`, starts the background scheduler (`artisan schedule:work` for `meilisearch:sync`), and chowns everything to `www-data` (the host mount may be root-owned).
+On every container start, `etc/docker/start-apache` creates the `var/framework/*` + `var/logs` directories, clears compiled views from previous images (OPcache runs with `validate_timestamps=0`), runs `artisan config:cache` and `artisan view:cache`, applies pending migrations (`artisan migrate --force`), starts the background scheduler (`artisan schedule:work` for `meilisearch:sync`), and chowns everything to `www-data` (the host mount may be root-owned).
 
 ## Configuration
 
