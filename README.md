@@ -35,7 +35,7 @@ docker compose up -d --build
 ```
 
 `docker compose up` starts everything in dependency order via `depends_on`:
-`niblmysql` (waits healthy) → `niblirc` + `niblcouk` + `redis` → `swag`.
+`niblmysql` (waits healthy) → `niblirc` + `niblcouk` → `swag` (`meilisearch` starts independently on the same network).
 The application DB user and schema are applied separately (which
 `scripts/deploy.sh` automates both):
 `niblmysql/bootstrap.sh` then
