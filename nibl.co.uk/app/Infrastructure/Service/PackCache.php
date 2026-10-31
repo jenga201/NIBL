@@ -23,7 +23,7 @@ final class PackCache
                 $bot->packs()
                     ->sorted($sort, $direction)
                     ->paginate(perPage: $size, page: $page)
-            )->response()->getContent()
+            )->toResponse(request())->getContent()
         );
     }
 
