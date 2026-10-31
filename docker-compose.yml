@@ -137,6 +137,7 @@ services:
       - /tmp
       - /var/run/apache2
       - /var/log/apache2
+      - /var/www/html/bootstrap/cache
     depends_on:
       niblmysql:
         condition: service_healthy
