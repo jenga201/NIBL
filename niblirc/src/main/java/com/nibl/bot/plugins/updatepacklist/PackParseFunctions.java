@@ -5,9 +5,11 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.TreeMap;
+import java.util.Map;
+import java.util.Objects;
 
 import com.nibl.bot.Bot;
 import com.nibl.bot.BotExtend;
@@ -159,43 +161,53 @@ public class PackParseFunctions extends BotExtend {
 			update = true;
 		}
 		
-		// packs can be missing, locked, or non-contiguous
-		// So, instead of using old listing, use a listing of <packNumber> = Pack when comparing data
-		TreeMap<Integer, Pack> map = new TreeMap<Integer,Pack>();
+		// Match by stable file identity (name) instead of the XDCC pack number,
+		// so a bot that renumbers/reorders its list only rewrites the shifted
+		// numbers rather than treating every affected file as brand new.
+		Map<String, Pack> byName = new HashMap<String, Pack>();
 		for(Pack pack : bot.getListing() ){
-			map.put(pack.getNumber(), pack);
+			byName.put(packName(pack), pack);
 		}
 		
 		for (int i = 0; i < newData.size(); i++) { // For each piece of new data
-			Pack comparePack = map.get(newData.get(i).getNumber());
-			// If pack exists in current listing and has not changed, update new pack attributes
-			if ( null != comparePack && 
-				 comparePack.getName().equals( newData.get(i).getName() ) &&   
-				 comparePack.getNumber() == newData.get(i).getNumber() && 
-				 comparePack.getSize().equals( newData.get(i).getSize() ) &&
-				 comparePack.getSizeKBits().equals( newData.get(i).getSizeKBits() )
-				){
-				
-				newData.get(i).setLastModified( comparePack.getLastModified() );
-				newData.get(i).setEpisodeNumber( comparePack.getEpisodeNumber() );
-				
+			Pack newPack = newData.get(i);
+			Pack oldPack = byName.get(packName(newPack));
+			
+			boolean sameContent = oldPack != null
+					&& Objects.equals(oldPack.getSize(), newPack.getSize())
+					&& Objects.equals(oldPack.getSizeKBits(), newPack.getSizeKBits());
+			
+			if (sameContent) {
+				// Same file: preserve its stable timestamp and derived episode
+				// number. A shifted XDCC number still needs persisting.
+				newPack.setLastModified(oldPack.getLastModified());
+				newPack.setEpisodeNumber(oldPack.getEpisodeNumber());
+				if (oldPack.getNumber() != newPack.getNumber()) {
+					update = true;
+				}
 			} else {
-				// Something has changed, so update db
+				// New file, or the same name with a different size: persist it.
 				update = true;
 				
 				// Attempt to get episodeNumber
 	        	int episodeNumber = -1;
-				LinkedList<Integer> episodes = _searchDAO.findEpisodeNumber( _searchDAO.removeBrackets(newData.get(i).getName()) );
+				LinkedList<Integer> episodes = _searchDAO.findEpisodeNumber( _searchDAO.removeBrackets(newPack.getName()) );
 				if(!episodes.isEmpty()){
 					episodeNumber = episodes.pop();
 				}
 				
-				newData.get(i).setEpisodeNumber(episodeNumber);	
+				newPack.setEpisodeNumber(episodeNumber);	
 			}
 		}
 		
 		return update;
 		
+	}
+
+	/** Null-safe filename key; matches {@link UpdatePackListDAO#packKey}. */
+	private static String packName(Pack pack) {
+		String name = pack.getName();
+		return name == null ? "" : name;
 	}
 	
 }
