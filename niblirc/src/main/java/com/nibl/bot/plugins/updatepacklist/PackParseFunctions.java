@@ -110,7 +110,7 @@ public class PackParseFunctions extends BotExtend {
 			SizeMult sizeMult = SizeMult.SIZE_NULL.getSizeMultByText(sizeDesc);
 			sizeKBits = (long) (Double.parseDouble(packsize.substring(0, packsize.length() - 1).replace("<", "")) * sizeMult.mul);
 		}catch(Exception e) {
-			_myBot.getLogger().error("Failed to calculate size with " + packsize, e);
+			_myBot.getLogger().warn("Failed to calculate size, defaulting to 0 kbits: " + packsize);
 		}
 		
 		return new Pack(bot.getId(), packnumber, bot.getName(), packname, packsize, sizeKBits, -1, new Timestamp(System.currentTimeMillis()));
