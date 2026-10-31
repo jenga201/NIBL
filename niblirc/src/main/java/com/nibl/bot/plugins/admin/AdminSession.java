@@ -3,6 +3,7 @@ package com.nibl.bot.plugins.admin;
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.channels.ClosedChannelException;
 import java.util.List;
 
 import org.pircbotx.Colors;
@@ -190,6 +191,8 @@ public class AdminSession extends BotExtend implements Runnable {
 				_session.sendLine("Connection Closed.");
 			} catch (SocketException e) {
 				_myBot.getLogger().info(_user.getNick() + " closed the connection to admin.");
+			} catch (ClosedChannelException e) {
+				_myBot.getLogger().info(_user.getNick() + " admin DCC chat closed.");
 			} catch (IOException e) {
 				_myBot.sendMessageFair(_user.getNick(), "Sorry I hit the red button by accident.");
 				_myBot.getLogger().error("Failed AdminSession",e);
