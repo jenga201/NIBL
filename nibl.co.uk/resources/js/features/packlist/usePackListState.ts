@@ -21,7 +21,7 @@ function readUrlState(): PackListUrlState {
     return {
         query: params.get('query') ?? '',
         sort,
-        direction: params.get('direction') === 'desc' ? 'desc' : 'asc',
+        direction: params.get('direction') === 'asc' ? 'asc' : 'desc',
         page: Math.max(1, Number(params.get('page')) || 1),
         pageSize,
     };
@@ -37,7 +37,7 @@ function writeUrlState(state: PackListUrlState): void {
         params.delete('query');
     }
 
-    if (state.sort !== 'number' || state.direction !== 'asc') {
+    if (state.sort !== 'number' || state.direction !== 'desc') {
         params.set('sort', state.sort);
         params.set('direction', state.direction);
     } else {
