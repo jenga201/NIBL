@@ -32,7 +32,7 @@ RUN apt-get update \
         zip \
     && pecl install apcu \
     && docker-php-ext-enable apcu \
-    && a2enmod rewrite \
+    && a2enmod rewrite remoteip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -75,6 +75,9 @@ WORKDIR /var/www/html
 
 # Modify default apache configuration
 COPY ./etc/docker/000-default.conf /etc/apache2/sites-available/000-default.conf
+
+# Trust the swag reverse proxy to forward the real client IP (mod_remoteip)
+COPY ./etc/docker/remoteip.conf /etc/apache2/conf-enabled/remoteip.conf
 
 # Custom PHP adjustments (zz to make them the last being applied)
 COPY ./etc/docker/php.ini.local $PHP_INI_DIR/conf.d/zz-usln.ini
