@@ -33,7 +33,7 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 
 # Remote SSH target: "user@host" or an alias from ~/.ssh/config.
-REMOTE_SSH="nibl2"
+REMOTE_SSH="nibl"
 
 # Forward the local ssh-agent across the SSH connection. Only needed if the host
 # clones via SSH — the default HTTPS clone needs no agent.
