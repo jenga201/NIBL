@@ -1,19 +1,30 @@
-# Deploy script (`deploy.sh`)
+# nibl.sh — production deploy/rebuild/logs TUI
 
-`deploy.sh` is the single-command production deployer for the whole NIBL stack —
-**niblmysql**, **niblirc**, **niblcouk** (nibl.co.uk) and
-**swag** (linuxserver/swag, the Let's Encrypt TLS gateway) — all defined in the
-root `docker-compose.yml` and deployed from a single Git checkout.
+`nibl.sh` is the production management TUI for the whole NIBL stack —
+**niblmysql**, **niblirc**, **niblcouk** (nibl.co.uk), **swag** (linuxserver/swag,
+the Let's Encrypt TLS gateway) and **meilisearch** — all defined in the root
+`docker-compose.yml` and deployed from a single Git checkout.
 
 Run it from `NIBL/scripts/`:
 
 ```sh
-bash deploy.sh
+bash nibl.sh
 ```
 
-It deploys over SSH; nothing runs on your machine except `ssh` and the remote
-commands. It does **not** `git commit` or `git push` — you push first, then this
-pulls the repository down to the host.
+It shows a small menu:
+
+- **1 Deploy** — full pipeline: clone/pull, seed secrets + backups, enable Docker
+  IPv6 (first run), build + start the stack, run migrations + Meilisearch
+  backfill, then verify the site and API over HTTPS.
+- **2 Rebuild** — pull the latest code, rebuild images, restart, migrate and
+  re-sync Meilisearch. Skips first-time setup and verification (assumes a prior
+  Deploy).
+- **3 Logs** — follow live container logs (`docker compose logs -f`), optionally
+  scoped to one service.
+
+It manages the stack over SSH; nothing runs on your machine except `ssh`/`scp`
+and the remote commands. It does **not** `git commit` or `git push` — you push
+first, then deploy or rebuild pulls the repository down to the host.
 
 ## What it deploys where
 
@@ -48,14 +59,14 @@ Edit these at the top of the script before the first run:
 
 | Variable | Purpose |
 |---|---|
-| `REMOTE_SSH` | `user@host` or a `~/.ssh/config` alias (currently `nibl2`) |
+| `REMOTE_SSH` | `user@host` or a `~/.ssh/config` alias (currently `nibl`) |
 | `SSH_USE_AGENT_FORWARDING` | Forward the local `ssh-agent` (only needed for an SSH clone) |
 | `REMOTE_DIR` | Remote checkout root (default `/opt/NIBL`) |
 | `REPO_URL` | The `NIBL` Git remote (HTTPS read-only by default) |
 | `REMOTE_BRANCH` | Production branch (default `main`; merge `develop` → `main` for releases) |
 | `SITE_HOST` / `SITE_URL` / `API_URL` | Final HTTP verification targets |
 
-## Order of operations
+## Deploy — order of operations
 
 | Step | What it does |
 |---|---|
@@ -66,6 +77,16 @@ Edit these at the top of the script before the first run:
 | **4 — Enable Docker IPv6 (first checkout)** | Runs `scripts/setup-docker-ipv6.sh` over `ssh -t` via `sudo` (prompts for the host password) to write `/etc/docker/daemon.json` and restart the daemon; idempotent on follow-up runs. |
 | **5 — Build + start the stack** | Creates the dual-stack `my-bridge` network if missing, then `docker compose build --pull` + `up -d --remove-orphans`. `depends_on` sequences the services (MySQL healthy → web/irc → swag; meilisearch joins independently). Waits for `niblmysql` healthy, then runs `niblmysql/bootstrap.sh` and `docker compose run --rm niblcouk php artisan migrate --force`. |
 | **6 — Verify** | Lists container states, then curls `SITE_URL` and `API_URL` through swag (`--resolve` to `127.0.0.1`); requires both to return `200`. |
+
+## Rebuild and Logs
+
+**Rebuild** runs a subset of the Deploy path: `git pull`, then the build + start
++ migrate + Meilisearch sync (Deploy steps 2 and 5). It skips seeding
+secrets/backups, Docker IPv6 setup, and the final HTTP verification, so it only
+works on a host that has already been deployed.
+
+**Logs** runs `docker compose logs -f` on the host (optionally scoped to one
+service) so you can watch container output live.
 
 ## Idempotency & safety notes
 
