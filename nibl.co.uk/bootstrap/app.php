@@ -16,6 +16,11 @@ $app = Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Behind the swag reverse proxy, which terminates TLS and forwards the
+        // original scheme via X-Forwarded-Proto. Trust it so Laravel generates
+        // https:// URLs (otherwise assets are served over http and blocked).
+        $middleware->trustProxies(at: '*');
+
         $middleware->encryptCookies(except: [
             \App\Domain\SiteView::COOKIE,
             \App\Infrastructure\Service\LegacyThemeService::COOKIE,
