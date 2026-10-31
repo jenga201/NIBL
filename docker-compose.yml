@@ -163,6 +163,8 @@ services:
       NIBL_DATA_CACHE: ${WEB_DATA_CACHE:-apcu}
     expose:
       - "80"
+    ports:
+      - "127.0.0.1:${WEB_HTTP_PORT:-8080}:80"
     volumes:
       - ./data/nibl.co.uk:/var/www/html/var
       - ./logs/nibl.co.uk:/var/www/html/var/logs
