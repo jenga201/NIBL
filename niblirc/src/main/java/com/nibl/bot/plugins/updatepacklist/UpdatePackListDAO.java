@@ -119,6 +119,12 @@ public class UpdatePackListDAO extends DataAccessObject {
 		stmt.executeUpdate(query);
 	}
 
+	public void setBotLastSeen(AbstractDistroBot bot) throws SQLException {
+		Statement stmt = getConnection().createStatement();
+		String query = "update " + _BOTS_TABLE + " set last_seen = NOW() where id = " + bot.getId();
+		stmt.executeUpdate(query);
+	}
+
 	public void setBotParser(AbstractDistroBot bot) throws SQLException {
 		Statement stmt = getConnection().createStatement();
 		String query = "update " + _BOTS_TABLE + " set parser_id = " + bot.getParserId() + " where id = " + bot.getId();
@@ -269,6 +275,13 @@ public class UpdatePackListDAO extends DataAccessObject {
 				delete.executeBatch();
 				insert.executeBatch();
 				update.executeBatch();
+			}
+
+			// Bump last_processed so cache invalidation + warmers can see this
+			// bot changed. updateListing() only runs when packListChanged() was
+			// true, so a no-op reprocess leaves this (and the cache) untouched.
+			try (Statement stmt = getConnection().createStatement()) {
+				stmt.executeUpdate("UPDATE " + _BOTS_TABLE + " SET last_processed = NOW() WHERE id = " + bot.getId());
 			}
 		} catch (SQLException e) {
 			_myBot.getLogger().error("UpdatePackListDAO BotName: " + bot.getName(), e);
