@@ -21,7 +21,7 @@ final class SortDto
     public static function fromRequest(array $params): self
     {
         $by = self::DEFAULT_SORT;
-        $direction = SortDirectionEnum::ASC();
+        $direction = SortDirectionEnum::DESC();
 
         $byParam = $params['by'] ?? null;
         if ($byParam !== null && in_array($byParam, self::ALLOWED_SORT_PARAMS, true)) {
