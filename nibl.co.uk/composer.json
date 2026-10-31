@@ -17,8 +17,7 @@
         "dedoc/scramble": "^0.13.52",
         "ezyang/htmlpurifier": "^4.19",
         "laravel/framework": "^13.0",
-        "myclabs/php-enum": "^1.8",
-        "predis/predis": "^3.7"
+        "myclabs/php-enum": "^1.8"
     },
     "require-dev": {
         "laravel/pint": "^1.27",
