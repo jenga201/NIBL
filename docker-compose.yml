@@ -129,6 +129,9 @@ services:
       LOG_DAILY_DAYS: ${WEB_LOG_DAILY_DAYS:-14}
       LOG_LEVEL: ${WEB_LOG_LEVEL:-info}
       NIBL_DATA_CACHE: ${WEB_DATA_CACHE:-apcu}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_CLIENT: phpredis
     expose:
       - "80"
     ports:
@@ -183,6 +186,24 @@ services:
         max-file: "3"
     networks:
       - my-bridge
+
+  redis:
+    image: redis:7-alpine
+    container_name: niblredis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - appnet
 
 networks:
   my-bridge:
