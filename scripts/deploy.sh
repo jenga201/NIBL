@@ -172,8 +172,8 @@ say "Build + start the stack (niblmysql -> niblirc + niblcouk -> swag)"
 ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" 'bash -s' "$REMOTE_DIR" <<'REMOTE_EOF'
 set -euo pipefail
 cd "$1"
-mkdir -p data/niblmysql data/nibl.co.uk data/niblirc data/swag logs/niblmysql logs/nibl.co.uk logs/niblirc logs/swag
-chown -R 1000:1000 data/niblmysql logs/niblmysql
+mkdir -p data/niblmysql data/nibl.co.uk data/niblirc data/swag data/meilisearch logs/niblmysql logs/nibl.co.uk logs/niblirc logs/swag
+chown -R 1000:1000 data/niblmysql data/meilisearch logs/niblmysql
 
 # Create the shared external network now (after Docker IPv6 is enabled above) so
 # it comes up dual-stack.
@@ -199,9 +199,11 @@ done
 echo "niblmysql: $status"
 
 # Bootstrap (restore backup if empty + provision the app user), then apply the
-# schema via Laravel migrations (nibl.co.uk/database/migrations).
+# schema via Laravel migrations (nibl.co.uk/database/migrations), then backfill
+# the Meilisearch index (later changes are picked up by the minute scheduler).
 bash niblmysql/bootstrap.sh
 docker compose run --rm niblcouk php artisan migrate --force
+docker compose run --rm niblcouk php artisan meilisearch:sync
 
 # Let the app containers come up, then report their states.
 sleep 10
