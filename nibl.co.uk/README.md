@@ -24,7 +24,7 @@ The Dockerfile is the only build pipeline:
 * **Node stage** — `npm ci` then `npm run build` compiles `resources/css` + `resources/js` (Tailwind 4 via `@tailwindcss/vite`) into `public/build/` with a Vite manifest. Built assets are **not** committed; they exist only inside the image.
 * **PHP stage** — `composer install --no-dev -a` installs dependencies with an optimized, authoritative autoloader and runs `artisan package:discover`.
 
-On every container start, `etc/docker/start-apache` creates the `var/framework/*` + `var/logs` directories, clears compiled views from previous images (OPcache runs with `validate_timestamps=0`), runs `artisan config:cache` and `artisan view:cache`, and chowns everything to `www-data` (the host mount may be root-owned).
+On every container start, `etc/docker/start-apache` creates the `var/framework/*` + `var/logs` directories, clears compiled views from previous images (OPcache runs with `validate_timestamps=0`), runs `artisan config:cache` and `artisan view:cache`, starts the background scheduler (`artisan schedule:work` for `packlists:warm`), and chowns everything to `www-data` (the host mount may be root-owned).
 
 ## Configuration
 
@@ -39,6 +39,8 @@ App-specific settings live in `config/api.php`; sessions use the `file` driver w
 ## JSON API
 
 The site serves the NIBL bot/pack API directly from the `ooinuza` database — the old `api.nibl.co.uk` (`niblapi`) service is deprecated and no longer called. Routes live in `routes/api.php` (mounted under the `/api` prefix) and return standard Laravel JSON: `{"data": ...}` resources, plus `links` and paginator metadata under `meta` (`current_page`, `per_page`, `total`, ...) on the `/page` endpoints.
+
+`GET /api/packs/{botId}/page` is served cache-aside from **Redis** (`App\Infrastructure\Service\PackCache`), keyed by the bot's `last_processed`; a minute scheduler (`packlists:warm` via `schedule:work`) pre-warms recently changed bots. Bots with `informative = 1` are excluded from listing/search/latest (`Bot::scopeActive()`). *(Meilisearch is planned to replace this cache + REGEXP search — see `Plans/NIBL-MEILISEARCH/plan.md`.)*
 
 | Route | Purpose |
 |---|---|

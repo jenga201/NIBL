@@ -34,7 +34,9 @@ class Bot extends Model
 
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where('status_id', self::STATUS_ACTIVE);
+        return $query
+            ->where('status_id', self::STATUS_ACTIVE)
+            ->where('informative', 0);
     }
 
     /** Bots that the site and the API list: active and holding at least one pack. */
