@@ -63,6 +63,31 @@ class WebPageTest extends TestCase
         $this->get('/bots/DoesNotExist')->assertNotFound();
     }
 
+    public function test_faq_page_renders_questions_as_accordions(): void
+    {
+        $this->get('/faq')
+            ->assertOk()
+            ->assertSee('How do I download?')
+            ->assertSee('<details', false)
+            ->assertSee('<summary', false)
+            ->assertSee('How to get my bot on the website?')
+            ->assertSee('Why is a bot down?')
+            ->assertSee('Why is the bot sending me the wrong files?')
+            ->assertSee('Why is a bot no longer on the parser?')
+            ->assertSee('Why is X bot this slow?')
+            ->assertDontSee('1. How to get my bot on the website?')
+            ->assertSee('network.<br>', false)
+            ->assertSee('divide-y divide-solid', false)
+            ->assertSeeInOrder(['IRC clients', 'Connection details', 'Joining #nibl', 'Requesting packs (XDCC)'])
+            ->assertSee('<table', false)
+            ->assertSee('AdiIRC')
+            ->assertSee('Top Pick')
+            ->assertSee('https://www.adiirc.com/', false)
+            ->assertDontSee('The Lounge')
+            ->assertSee('irc.rizon.net')
+            ->assertSee('/msg BotName xdcc send #N');
+    }
+
     public function test_search_page_renders_pack_table_mount(): void
     {
         $this->get('/search?query=web show')
