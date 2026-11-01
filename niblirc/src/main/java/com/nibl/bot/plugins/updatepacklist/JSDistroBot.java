@@ -22,8 +22,8 @@ public class JSDistroBot extends AbstractDistroBot {
 		try{
 			List<Pack> fromWeb = parseList();
 			if( _packParseFunctions.packListChanged(this, fromWeb) ){ // pack list has changed, so update it
+				updateDatabase( fromWeb );
 				setListing( fromWeb );
-				updateDatabase();
 			}
 		}catch(Exception e){
 			_myBot.getLogger().error("Unable to parse " + getType() + ": " + getName(),e);

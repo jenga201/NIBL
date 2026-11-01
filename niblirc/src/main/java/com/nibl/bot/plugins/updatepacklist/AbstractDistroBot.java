@@ -105,8 +105,8 @@ public abstract class AbstractDistroBot extends BotExtend {
 		_updatePackListDAO.addNewBot(this);
 	}
 	
-	public void updateDatabase() {
-		_updatePackListDAO.updateListing(this);
+	public void updateDatabase(List<Pack> newListing) {
+		_updatePackListDAO.updateListing(this, getListing(), newListing);
 	}
 
 

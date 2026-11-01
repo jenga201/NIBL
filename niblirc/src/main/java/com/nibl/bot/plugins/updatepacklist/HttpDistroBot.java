@@ -22,8 +22,8 @@ public class HttpDistroBot extends AbstractDistroBot {
 		if( !getURL().equals( AbstractDistroBot.TYPE_NONE ) ){
 			List<Pack> fromWeb = parseList();
 			if( _packParseFunctions.packListChanged(this, fromWeb) ){ // pack list has changed, so update it
+				updateDatabase( fromWeb );
 				setListing( fromWeb );
-				updateDatabase();
 			}
 			_myBot.getLogger().trace("Finish Compare and update database");
 		}
