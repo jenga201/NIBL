@@ -17,7 +17,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="$SCRIPT_DIR/backup"
 ENV_FILE="$SCRIPT_DIR/../.env"
 
+# Batch query: SQL is passed as mysql arguments (-e), so stdin is left alone.
+# (No `-i` — otherwise `docker exec` would consume a heredoc-fed deploy script
+# and every command after this would silently disappear.)
 mysql_exec() {
+  docker exec -e MYSQL_SOCKET="$MYSQL_SOCKET" "$CONTAINER" \
+    sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot --socket="$MYSQL_SOCKET" "$@"' sh "$@"
+}
+
+# Streaming variant for the database restore: SQL is piped in over stdin.
+mysql_stdin() {
   docker exec -i -e MYSQL_SOCKET="$MYSQL_SOCKET" "$CONTAINER" \
     sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot --socket="$MYSQL_SOCKET" "$@"' sh "$@"
 }
@@ -32,7 +41,7 @@ if [ "$table_count" = "0" ]; then
     exit 1
   fi
   echo "==> restoring $(basename "$latest")"
-  gzip -dc "$latest" | mysql_exec
+  gzip -dc "$latest" | mysql_stdin
 else
   echo "==> ooinuza already has tables; skipping backup restore"
 fi
