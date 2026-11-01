@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -31,9 +32,8 @@ public class AnidbDAO extends DataAccessObject {
     @Override
     public void createTables() {
         if (!tableExists("anidb")) {
-            try {
-                // ALTER TABLE ooinuza.anidb MODIFY COLUMN `title` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;
-                Statement statement = getConnection().createStatement();
+            try (Connection connection = getConnection();
+                    Statement statement = connection.createStatement()) {
                 statement.execute(
                         "CREATE TABLE IF NOT EXISTS `anidb` (`id` int(11) NOT NULL, `title` varchar(300) NOT NULL, `type` varchar(300), `lang` varchar(300)) ENGINE=InnoDB DEFAULT CHARSET=latin1;");
             } catch (SQLException e) {
@@ -41,7 +41,6 @@ public class AnidbDAO extends DataAccessObject {
             }
             _myBot.getLogger().info("Tables Created for Admin Users");
         }
-        // anidbDump();
     }
 
     public void anidbDump() {
@@ -49,9 +48,8 @@ public class AnidbDAO extends DataAccessObject {
 
         if (_myBot.getProperty("anidb").equals("enabled")) {
             _myBot.getLogger().info("AniDB Data dump");
-            try {
-                String sql = "INSERT INTO `anidb` (`id`, `title`, `type`, `lang`) VALUES (?,?,?,?)";
-                PreparedStatement pstmt = getConnection().prepareStatement(sql);
+            try (Connection connection = getConnection();
+                    PreparedStatement pstmt = connection.prepareStatement("INSERT INTO `anidb` (`id`, `title`, `type`, `lang`) VALUES (?,?,?,?)")) {
                 URLConnection urlConnection = (new URL(_myBot.getProperty("anidb_link"))).openConnection();
                 urlConnection.setConnectTimeout(4000);
                 urlConnection.setReadTimeout(4000);
@@ -62,17 +60,13 @@ public class AnidbDAO extends DataAccessObject {
                 NodeList nodeList = doc.getElementsByTagName("anime");
 
                 for (int s = 0; s < nodeList.getLength(); s++) {
-
                     Node currentNode = nodeList.item(s);
-
                     if (currentNode.getNodeType() == Node.ELEMENT_NODE) {
                         NodeList titleNodeList = ((Element) currentNode).getElementsByTagName("title");
-
                         for (int i = 0; i < titleNodeList.getLength(); i++) {
                             Element element = (Element) titleNodeList.item(i);
                             String type = element.getAttribute("type");
                             String lang = element.getAttribute("xml:lang");
-
                             if (type.matches("(syn|main|official)") && lang.matches("(en|x\\-jat)")) {
                                 Integer aid = Integer.parseInt(
                                         element.getParentNode().getAttributes().getNamedItem("aid").getNodeValue());
@@ -94,29 +88,30 @@ public class AnidbDAO extends DataAccessObject {
     }
 
     public Object[] findAidTotalAndSeriesName(String term, Integer moveForward) throws SQLException {
-        Statement statement = getConnection().createStatement();
+        try (Connection connection = getConnection();
+                Statement statement = connection.createStatement()) {
+            String sql = "select distinct id from anidb where title like '%" + term.trim().replaceAll(" ", "%")
+                    + "%' order by id;";
+            ResultSet rs = statement.executeQuery(sql);
+            int total = 0;
 
-        String sql = "select distinct id from anidb where title like '%" + term.trim().replaceAll(" ", "%")
-                + "%' order by id;";
-        ResultSet rs = statement.executeQuery(sql);
-        int total = 0;
-
-        for (int i = 0; i <= moveForward; i++) {
-            total++;
-            if (!rs.next()) {
-                return null;
+            for (int i = 0; i <= moveForward; i++) {
+                total++;
+                if (!rs.next()) {
+                    return null;
+                }
             }
-        }
-        int aid = rs.getInt(1);
-        while (rs.next()) {
-            total++;
-        }
+            int aid = rs.getInt(1);
+            while (rs.next()) {
+                total++;
+            }
 
-        sql = "select title from anidb where id=" + aid + ";";
-        rs = statement.executeQuery(sql);
-        rs.next();
-        String seriesName = rs.getString(1);
-        return new Object[] { aid, total, seriesName };
+            sql = "select title from anidb where id=" + aid + ";";
+            rs = statement.executeQuery(sql);
+            rs.next();
+            String seriesName = rs.getString(1);
+            return new Object[] { aid, total, seriesName };
+        }
     }
 
     public Document findSeries(Integer aid)
@@ -134,8 +129,8 @@ public class AnidbDAO extends DataAccessObject {
 
     @Override
     public void dropTables() {
-        try {
-            Statement statement = getConnection().createStatement();
+        try (Connection connection = getConnection();
+                Statement statement = connection.createStatement()) {
             statement.execute("DELETE FROM `anidb`");
         } catch (SQLException e) {
             _myBot.getLogger().error("dropTables", e);

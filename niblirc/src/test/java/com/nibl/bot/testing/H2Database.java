@@ -14,23 +14,23 @@ import com.nibl.bot.database.Database;
 
 /**
  * In-memory H2 {@link Database} in MySQL compatibility mode. The schema is
- * loaded once from /schema.sql on the test classpath; DB_CLOSE_DELAY=-1 keeps
- * the data alive for the lifetime of the JVM so the single cached connection
- * can be shared by every DAO (mirroring MySqlDatabase, which also hands out
- * one connection).
+ * loaded once from /schema.sql on the test classpath. {@link #getConnection()}
+ * hands out a fresh connection each call (the DAOs close them), while the
+ * keeper connection holds the in-memory database open for the test JVM.
  */
 public class H2Database implements Database {
 
-    private final Connection connection;
+    private final String url;
+    private final Connection keeper;
 
     public H2Database(String dbName) throws SQLException {
-        String url = "jdbc:h2:mem:" + dbName
+        this.url = "jdbc:h2:mem:" + dbName
                 + ";MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;DB_CLOSE_DELAY=-1";
-        this.connection = DriverManager.getConnection(url, "sa", "");
-        loadSchema();
+        this.keeper = DriverManager.getConnection(url, "sa", "");
+        loadSchema(keeper);
     }
 
-    private void loadSchema() throws SQLException {
+    private void loadSchema(Connection connection) throws SQLException {
         InputStream in = H2Database.class.getResourceAsStream("/schema.sql");
         if (in == null) {
             throw new SQLException("Test schema /schema.sql not found on the test classpath");
@@ -44,10 +44,10 @@ public class H2Database implements Database {
 
     @Override
     public Connection getConnection() {
-        return connection;
-    }
-
-    public void close() throws SQLException {
-        connection.close();
+        try {
+            return DriverManager.getConnection(url, "sa", "");
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to obtain an H2 test connection", e);
+        }
     }
 }

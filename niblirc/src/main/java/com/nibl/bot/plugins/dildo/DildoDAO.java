@@ -1,5 +1,6 @@
 package com.nibl.bot.plugins.dildo;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,51 +27,38 @@ public class DildoDAO extends DataAccessObject {
     }
 
     private String getRandomWord(Integer type) throws SQLException {
-        PreparedStatement pstmt = null;
-        ResultSet rs = null;
-        try {
-            pstmt = getConnection().prepareStatement(randomWordSQL);
+        try (Connection connection = getConnection();
+                PreparedStatement pstmt = connection.prepareStatement(randomWordSQL)) {
             pstmt.setInt(1, type);
-            rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getString("value");
-            } else {
-                throw new SQLException("Probably a db error");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("value");
+                } else {
+                    throw new SQLException("Probably a db error");
+                }
             }
-        } finally {
-            rs.close();
-            pstmt.close();
         }
-
     }
 
     private String getRandomAlternateWord(String value, Integer type) throws SQLException {
-        PreparedStatement pstmt = null;
-        ResultSet rs = null;
-        try {
-            pstmt = getConnection().prepareStatement(randomAlternateWord);
+        try (Connection connection = getConnection();
+                PreparedStatement pstmt = connection.prepareStatement(randomAlternateWord)) {
             pstmt.setInt(1, type);
             pstmt.setString(2, value);
-            rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getString("value");
-            } else {
-                throw new SQLException("Probably a db error");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("value");
+                } else {
+                    throw new SQLException("Probably a db error");
+                }
             }
-        } finally {
-            rs.close();
-            pstmt.close();
         }
-
     }
-
-    // [caller] [verb]s [randUser] `with` [randNumber] [adjective:?opt] dildo(s) of [adjective:?opt] [noun]
 
     // 1=>Noun, 2=>Verb, 3=>Adjective, 4=>Adverb
     public String getRandomDildo(String caller, String receiver) {
         StringBuilder sb = new StringBuilder();
         try {
-
             String noun = getRandomWord(Dildo.NOUN);
             String verb = getRandomWord(Dildo.VERB);
             String adjective = getRandomWord(Dildo.ADJECTIVE);
@@ -83,58 +71,35 @@ public class DildoDAO extends DataAccessObject {
             } else {
                 randomNum = rand.nextInt((100 - 1) + 1) + 1;
             }
-            /*
-             * End setup random variables
-             */
 
-            // Add Caller Name
-            sb.append(caller); // Jenga
+            sb.append(caller);
             sb.append(" ");
-
-            sb.append(adverb);// Roughly
+            sb.append(adverb);
             sb.append(" ");
-
-            // Add verb
-            sb.append(verb); // Insert(s)
+            sb.append(verb);
             sb.append("s");
             sb.append(" ");
-
-            // Add Receiver Name
-            sb.append(receiver); // ooinuza
+            sb.append(receiver);
             sb.append(" ");
-
-            // Add Text
-            sb.append("with"); // with
+            sb.append("with");
             sb.append(" ");
-
-            // Add Random Number
-            sb.append(randomNum); // 1234
+            sb.append(randomNum);
             sb.append(" ");
-
-            // Add Adjective
-            sb.append(adjective); // rusty
+            sb.append(adjective);
             sb.append(" ");
-
-            // Add Text
-            sb.append("dildo"); // dildo(s)
+            sb.append("dildo");
             if (randomNum > 1) {
                 sb.append("s");
             }
             sb.append(" ");
             sb.append("of");
             sb.append(" ");
-
-            // Add Adjective
-            sb.append(getRandomAlternateWord(adjective, Dildo.ADJECTIVE)); // rusty
+            sb.append(getRandomAlternateWord(adjective, Dildo.ADJECTIVE));
             sb.append(" ");
-
-            // Add Noun
-            sb.append(noun); // Sewage
-
+            sb.append(noun);
         } catch (SQLException e) {
             _myBot.getLogger().error("Error when getting random dildo", e);
         }
-
         return sb.toString();
     }
 

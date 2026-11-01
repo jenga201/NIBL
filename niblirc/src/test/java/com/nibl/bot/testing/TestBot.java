@@ -67,22 +67,22 @@ public class TestBot extends Bot {
         String sql = "INSERT INTO updatepacklist_bots "
                 + "(name, url, type, owner, status_id, last_seen, last_processed, informative, batchenable, external, parser_id) "
                 + "VALUES (?, ?, ?, ?, ?, '2026-01-01 00:00:00', '2026-01-01 00:00:00', 0, 1, 0, ?)";
-        PreparedStatement pstmt = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-        pstmt.setString(1, name);
-        pstmt.setString(2, url);
-        pstmt.setString(3, type);
-        pstmt.setString(4, owner);
-        pstmt.setInt(5, statusId);
-        pstmt.setInt(6, parserId);
-        pstmt.executeUpdate();
-        ResultSet keys = pstmt.getGeneratedKeys();
-        if (!keys.next()) {
-            pstmt.close();
-            throw new SQLException("No generated key returned for bot " + name);
-        }
-        int id = keys.getInt(1);
-        pstmt.close();
-        return id;
+        try (Connection connection = getConnection();
+                     PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                    pstmt.setString(1, name);
+                    pstmt.setString(2, url);
+                    pstmt.setString(3, type);
+                    pstmt.setString(4, owner);
+                    pstmt.setInt(5, statusId);
+                    pstmt.setInt(6, parserId);
+                    pstmt.executeUpdate();
+                    try (ResultSet keys = pstmt.getGeneratedKeys()) {
+                        if (!keys.next()) {
+                            throw new SQLException("No generated key returned for bot " + name);
+                        }
+                        return keys.getInt(1);
+                    }
+                }
     }
 
     /** Inserts a fake pack row into updatepacklist_packs. */
@@ -90,15 +90,16 @@ public class TestBot extends Bot {
             String lastModified) throws SQLException {
         String sql = "INSERT INTO updatepacklist_packs "
                 + "(bot_id, number, name, size, sizekbits, episode_number, last_modified) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        PreparedStatement pstmt = getConnection().prepareStatement(sql);
-        pstmt.setInt(1, botId);
-        pstmt.setInt(2, number);
-        pstmt.setString(3, name);
-        pstmt.setString(4, size);
-        pstmt.setLong(5, sizeKBits);
-        pstmt.setInt(6, episodeNumber);
-        pstmt.setString(7, lastModified);
-        pstmt.executeUpdate();
-        pstmt.close();
-    }
+        try (Connection connection = getConnection();
+                     PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                    pstmt.setInt(1, botId);
+                    pstmt.setInt(2, number);
+                    pstmt.setString(3, name);
+                    pstmt.setString(4, size);
+                    pstmt.setLong(5, sizeKBits);
+                    pstmt.setInt(6, episodeNumber);
+                    pstmt.setString(7, lastModified);
+                    pstmt.executeUpdate();
+                }
+            }
 }

@@ -1,5 +1,6 @@
 package com.nibl.bot.plugins.scheduler;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -22,12 +23,11 @@ public class SchedulerDAO extends DataAccessObject {
     @Override
     public void createTables() {
         if (tablesDoesNotExist()) {
-            try {
-                Statement statement = getConnection().createStatement();
+            try (Connection connection = getConnection();
+                    Statement statement = connection.createStatement()) {
                 statement.execute(
                         "CREATE TABLE `schedules` (`commandName` varchar(50) NOT NULL,`lastRun` timestamp DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (`commandName`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;");
                 _myBot.getLogger().info("created schedules tables");
-                statement.close();
             } catch (SQLException e) {
                 _myBot.getLogger().error("createTables", e);
             }
@@ -40,32 +40,29 @@ public class SchedulerDAO extends DataAccessObject {
 
     @Override
     public void dropTables() {
-        try {
-            Statement statement = getConnection().createStatement();
+        try (Connection connection = getConnection();
+                Statement statement = connection.createStatement()) {
             statement.execute("DROP TABLE IF EXISTS `schedules`;");
             _myBot.getLogger().info("dropped schedules table");
-            statement.close();
         } catch (SQLException e) {
             _myBot.getLogger().error("dropTables", e);
         }
     }
 
     public Date getTime(Command command, int scheduleNumber) {
-        try {
-            Statement statement = getConnection().createStatement();
+        try (Connection connection = getConnection();
+                Statement statement = connection.createStatement()) {
             ResultSet rs = statement.executeQuery("SELECT * FROM `schedules` WHERE `commandName` = '"
                     + command.getName() + "_" + scheduleNumber + "';");
             if (rs.next()) {
                 DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 try {
                     String butts = rs.getString(2);
-                    Date corn = df.parse(butts);
-                    return corn;
+                    return df.parse(butts);
                 } catch (Exception e) {
                     _myBot.getLogger().error("getTime", e);
                 }
             }
-            statement.close();
         } catch (SQLException e) {
             _myBot.getLogger().error("getTime", e);
         }
@@ -73,12 +70,11 @@ public class SchedulerDAO extends DataAccessObject {
     }
 
     public void setTime(Command command, int scheduleNumber) {
-        try {
-            Statement statement = getConnection().createStatement();
+        try (Connection connection = getConnection();
+                Statement statement = connection.createStatement()) {
             String commandName = command.getName() + "_" + scheduleNumber;
             statement.execute("INSERT INTO `schedules` (commandName) VALUES ('" + commandName
                     + "') ON DUPLICATE KEY UPDATE `lastRun` = CURRENT_TIMESTAMP;");
-            statement.close();
         } catch (SQLException e) {
             _myBot.getLogger().error("setTime", e);
         }
