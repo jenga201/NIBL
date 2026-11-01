@@ -16,21 +16,21 @@ import com.nibl.bot.util.Manageable;
 
 /**
  * holds variables
- * 
+ * <p>
  * Bot _myBot; Bot to respond on
- * 
+ * <p>
  * String _channel; channel posted on
- * 
+ * <p>
  * String _user; user that made the request
- * 
+ * <p>
  * String _login; I donno what this is
- * 
+ * <p>
  * String _hostname; host name
- * 
+ * <p>
  * String _args; arguments
- * 
+ *
  * @author cwang
- * 
+ *
  */
 public abstract class Command extends BotExtend implements Runnable, Manageable {
 
@@ -144,12 +144,12 @@ public abstract class Command extends BotExtend implements Runnable, Manageable 
     /**
      * Create a schedule, Maximum of 10 accepted per command to be ran every x hours started on the hour.
      * To use, create a function:
-     * @Override
-     * public void mySchedule[1-10](){
-     *  //my data here
-     * }
+     *
      * @param scheduleNumber
      * @param hours
+     * @Override public void mySchedule[1-10](){
+     * //my data here
+     * }
      */
     public final void addSchedule(int scheduleNumber, long delay, long seconds) {
         _scheduler.register(this, scheduleNumber, delay, seconds);
@@ -170,34 +170,54 @@ public abstract class Command extends BotExtend implements Runnable, Manageable 
     }
 
     public void mySchedule1() {
-    };
+    }
+
+    ;
 
     public void mySchedule2() {
-    };
+    }
+
+    ;
 
     public void mySchedule3() {
-    };
+    }
+
+    ;
 
     public void mySchedule4() {
-    };
+    }
+
+    ;
 
     public void mySchedule5() {
-    };
+    }
+
+    ;
 
     public void mySchedule6() {
-    };
+    }
+
+    ;
 
     public void mySchedule7() {
-    };
+    }
+
+    ;
 
     public void mySchedule8() {
-    };
+    }
+
+    ;
 
     public void mySchedule9() {
-    };
+    }
+
+    ;
 
     public void mySchedule10() {
-    };
+    }
+
+    ;
 
     public abstract void execute();
 
@@ -253,6 +273,7 @@ public abstract class Command extends BotExtend implements Runnable, Manageable 
 
     /**
      * When a user does /msg ooinuza stop, notices will not be sent
+     *
      * @return enable sending notices to nick
      */
     public boolean stillNoticeSend() {

@@ -26,10 +26,12 @@ public class SearchDAO extends DataAccessObject {
     }
 
     @Override
-    public void createTables() {}
+    public void createTables() {
+    }
 
     @Override
-    public void dropTables() {}
+    public void dropTables() {
+    }
 
     /**
      * Search packs via the Meilisearch read model: fuzzy/typo-tolerant, active
@@ -95,10 +97,12 @@ public class SearchDAO extends DataAccessObject {
         if (epMatcher.find()) {
             try {
                 output.add(Integer.parseInt(removeLeadingZeros(epMatcher.group(1))));
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
             try {
                 output.add(Integer.parseInt(removeLeadingZeros(epMatcher.group(2))));
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         }
 
         return output;

@@ -33,7 +33,7 @@ public class AnidbDAO extends DataAccessObject {
     public void createTables() {
         if (!tableExists("anidb")) {
             try (Connection connection = getConnection();
-                    Statement statement = connection.createStatement()) {
+                 Statement statement = connection.createStatement()) {
                 statement.execute(
                         "CREATE TABLE IF NOT EXISTS `anidb` (`id` int(11) NOT NULL, `title` varchar(300) NOT NULL, `type` varchar(300), `lang` varchar(300)) ENGINE=InnoDB DEFAULT CHARSET=latin1;");
             } catch (SQLException e) {
@@ -49,7 +49,7 @@ public class AnidbDAO extends DataAccessObject {
         if (_myBot.getProperty("anidb").equals("enabled")) {
             _myBot.getLogger().info("AniDB Data dump");
             try (Connection connection = getConnection();
-                    PreparedStatement pstmt = connection.prepareStatement("INSERT INTO `anidb` (`id`, `title`, `type`, `lang`) VALUES (?,?,?,?)")) {
+                 PreparedStatement pstmt = connection.prepareStatement("INSERT INTO `anidb` (`id`, `title`, `type`, `lang`) VALUES (?,?,?,?)")) {
                 URLConnection urlConnection = (new URL(_myBot.getProperty("anidb_link"))).openConnection();
                 urlConnection.setConnectTimeout(4000);
                 urlConnection.setReadTimeout(4000);
@@ -89,7 +89,7 @@ public class AnidbDAO extends DataAccessObject {
 
     public Object[] findAidTotalAndSeriesName(String term, Integer moveForward) throws SQLException {
         try (Connection connection = getConnection();
-                Statement statement = connection.createStatement()) {
+             Statement statement = connection.createStatement()) {
             String sql = "select distinct id from anidb where title like '%" + term.trim().replaceAll(" ", "%")
                     + "%' order by id;";
             ResultSet rs = statement.executeQuery(sql);
@@ -110,7 +110,7 @@ public class AnidbDAO extends DataAccessObject {
             rs = statement.executeQuery(sql);
             rs.next();
             String seriesName = rs.getString(1);
-            return new Object[] { aid, total, seriesName };
+            return new Object[]{aid, total, seriesName};
         }
     }
 
@@ -130,7 +130,7 @@ public class AnidbDAO extends DataAccessObject {
     @Override
     public void dropTables() {
         try (Connection connection = getConnection();
-                Statement statement = connection.createStatement()) {
+             Statement statement = connection.createStatement()) {
             statement.execute("DELETE FROM `anidb`");
         } catch (SQLException e) {
             _myBot.getLogger().error("dropTables", e);

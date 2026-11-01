@@ -14,98 +14,100 @@ import com.nibl.bot.command.Command;
 
 
 public class Search extends Command {
-/*
- * The purpose of this module is to connect to the database, search for
- * some results, then output results.
- */
-	
-	SearchDAO _searchDAO;
-	String _adminHelp = null;
+    /*
+     * The purpose of this module is to connect to the database, search for
+     * some results, then output results.
+     */
 
-	public Search(Bot myBot, Channel channel, User user, String actualcmd, String args) {
-		super(myBot, channel, user, actualcmd, args);
-		_searchDAO = (SearchDAO)myBot.getDAOFactory().getDAO("SearchDAO");
-	}
+    SearchDAO _searchDAO;
+    String _adminHelp = null;
 
-	@Override
-	public String getCommand() {
-		return "!search @search !s @s !find";
-	}
+    public Search(Bot myBot, Channel channel, User user, String actualcmd, String args) {
+        super(myBot, channel, user, actualcmd, args);
+        _searchDAO = (SearchDAO) myBot.getDAOFactory().getDAO("SearchDAO");
+    }
 
-	@Override
-	public String getDescription() {
-		return "Search all % bots in this channel. Private message the bot to get results privately.";
-	}
+    @Override
+    public String getCommand() {
+        return "!search @search !s @s !find";
+    }
 
-	@Override
-	public String getSyntax() {
-		return "[search_term]";
-	}
+    @Override
+    public String getDescription() {
+        return "Search all % bots in this channel. Private message the bot to get results privately.";
+    }
 
-	@Override
-	public LinkedList<String> adminHelp() {
-		return new LinkedList<String>();
+    @Override
+    public String getSyntax() {
+        return "[search_term]";
+    }
+
+    @Override
+    public LinkedList<String> adminHelp() {
+        return new LinkedList<String>();
 		/*_adminHelp = sb.toString();
 		return _adminHelp;*/
-	}
-	
-	@Override
-	public void execute() {
-		_args = _args.trim();
-		if(_args.length()==0)
-		{
-			if( this.isOriginatePrivateMessage() ){
-				_myBot.sendMessageFair(_user.getNick(), getDescription());
-			} else {
-				_myBot.sendMessageFair(_channel, getDescription());
-			}
-			
-			return;
-		}
+    }
 
-		for(String temp[] :_searchDAO.search(_user.getNick(),_args)){
-			
-			if( this.isOriginatePrivateMessage() ){
-				_myBot.sendMessageFair(_user.getNick(), temp[1]);
-			} else {
-				_myBot.sendNoticeFair(temp[0], temp[1]);
-			}
-			
-		}
-	}
+    @Override
+    public void execute() {
+        _args = _args.trim();
+        if (_args.length() == 0) {
+            if (this.isOriginatePrivateMessage()) {
+                _myBot.sendMessageFair(_user.getNick(), getDescription());
+            } else {
+                _myBot.sendMessageFair(_channel, getDescription());
+            }
 
-	@Override
-	public String getName() {
-		return "search";
-	}
+            return;
+        }
 
-	@Override
-	public int getAccessLevel() {
-		return 7;
-	}
+        for (String temp[] : _searchDAO.search(_user.getNick(), _args)) {
 
-	@Override
-	public void executeAfterDisabled() {}
+            if (this.isOriginatePrivateMessage()) {
+                _myBot.sendMessageFair(_user.getNick(), temp[1]);
+            } else {
+                _myBot.sendNoticeFair(temp[0], temp[1]);
+            }
 
-	@Override
-	public void executeAfterEnabled() {}
+        }
+    }
 
-	@Override
-	public void admin(SendChat session, User user, String message) throws IOException, SQLException {}
-	
-	@Override
-	public TreeMap<String, Integer> getCommandAccessLevels() {
-		// Default command access levels
-		TreeMap<String, Integer> commandAccessLevels = new TreeMap<String, Integer>();
-		for(String command : this.getCommand().split(" ")) {
-			commandAccessLevels.put(command.toLowerCase(), -1);
-		}
-		return commandAccessLevels;
-	}
-	
-	@Override
-	public Boolean acceptPrivateMessage() {
-		return true;
-	}
-	
+    @Override
+    public String getName() {
+        return "search";
+    }
+
+    @Override
+    public int getAccessLevel() {
+        return 7;
+    }
+
+    @Override
+    public void executeAfterDisabled() {
+    }
+
+    @Override
+    public void executeAfterEnabled() {
+    }
+
+    @Override
+    public void admin(SendChat session, User user, String message) throws IOException, SQLException {
+    }
+
+    @Override
+    public TreeMap<String, Integer> getCommandAccessLevels() {
+        // Default command access levels
+        TreeMap<String, Integer> commandAccessLevels = new TreeMap<String, Integer>();
+        for (String command : this.getCommand().split(" ")) {
+            commandAccessLevels.put(command.toLowerCase(), -1);
+        }
+        return commandAccessLevels;
+    }
+
+    @Override
+    public Boolean acceptPrivateMessage() {
+        return true;
+    }
+
 }

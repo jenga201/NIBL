@@ -96,7 +96,7 @@ public class Anidb extends Command {
     }
 
     public AnidbSeries createSeries(Document series, Integer moveForward, Integer total, Integer aid,
-            String seriesName) {
+                                    String seriesName) {
         String type;
         String episodeCount;
         String startDate;

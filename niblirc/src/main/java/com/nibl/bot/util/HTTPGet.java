@@ -18,51 +18,63 @@ import com.nibl.bot.BotExtend;
 
 public class HTTPGet extends BotExtend {
 
-	public HTTPGet(Bot myBot) {
-		super(myBot);
-		// Create a trust manager that does not validate certificate chains
-		final TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+    public HTTPGet(Bot myBot) {
+        super(myBot);
+        // Create a trust manager that does not validate certificate chains
+        final TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
 
-			@Override
-			public void checkServerTrusted(X509Certificate[] chain, String authType) {
-			}
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType) {
+            }
 
-			@Override
-			public void checkClientTrusted(X509Certificate[] chain, String authType) {
-			}
+            @Override
+            public void checkClientTrusted(X509Certificate[] chain, String authType) {
+            }
 
-			@Override
-			public X509Certificate[] getAcceptedIssuers() {
-				return null;
-			}
-		} };
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                return null;
+            }
+        }};
 
-		HostnameVerifier hv = (hostname, session) -> true;
-		HttpsURLConnection.setDefaultHostnameVerifier(hv);
+        HostnameVerifier hv = (hostname, session) -> true;
+        HttpsURLConnection.setDefaultHostnameVerifier(hv);
 
-		try {
-			// Install the all-trusting trust manager
-			final SSLContext sslContext = SSLContext.getInstance("TLS");
-			sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-			HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+        try {
+            // Install the all-trusting trust manager
+            final SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
-	public RandomAccessFile getURLData(String url) {
-		try {
-			URLConnection urlConnection = URI.create(url).toURL().openConnection();
-			urlConnection.setConnectTimeout(10000);
-			urlConnection.setReadTimeout(10000);
-			urlConnection.setRequestProperty("User-Agent", "ooinuzaBot");
-			InputStream inputStream = urlConnection.getInputStream();
-			return InputStreamConverter.toRandomAccessFile(inputStream);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+    public RandomAccessFile getURLData(String url) {
+        try {
+            URLConnection urlConnection = URI.create(url).toURL().openConnection();
+            urlConnection.setConnectTimeout(parseTimeout("http_connect_timeout", 15000));
+            urlConnection.setReadTimeout(parseTimeout("http_read_timeout", 60000));
+            urlConnection.setRequestProperty("User-Agent", "ooinuzaBot");
+            InputStream inputStream = urlConnection.getInputStream();
+            return InputStreamConverter.toRandomAccessFile(inputStream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-		return null;
-	}
+        return null;
+    }
+
+    int parseTimeout(String key, int fallback) {
+        String value = _myBot.getProperty(key);
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
 
 }

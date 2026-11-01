@@ -28,7 +28,9 @@ public class MySqlDatabase extends BotExtend implements Database {
         validateConnection();
     }
 
-    /** Fail fast at startup if the database is unreachable. */
+    /**
+     * Fail fast at startup if the database is unreachable.
+     */
     private void validateConnection() {
         try (Connection ignored = dataSource.getConnection()) {
             _myBot.getLogger().info("Database connection established");

@@ -16,91 +16,95 @@ import com.nibl.bot.Bot;
 import com.nibl.bot.command.Command;
 
 public class Rules extends Command {
-	
-	String _adminHelp = null;
-	RulesDAO _rulesDAO;
-	private static TreeMap<String, GregorianCalendar> restrictRuns = new TreeMap<String, GregorianCalendar>();
-	
-	public Rules(Bot myBot, Channel channel, User user, String actualcmd, String args) {
-		super(myBot, channel, user, actualcmd, args);
-		_rulesDAO = new RulesDAO(_myBot);
-	}
 
-	@Override
-	public String getCommand() {
-		return "!rules";
-	}
+    String _adminHelp = null;
+    RulesDAO _rulesDAO;
+    private static TreeMap<String, GregorianCalendar> restrictRuns = new TreeMap<String, GregorianCalendar>();
 
-	@Override
-	public String getDescription() {
-		return "Displays channel rules";
-	}
+    public Rules(Bot myBot, Channel channel, User user, String actualcmd, String args) {
+        super(myBot, channel, user, actualcmd, args);
+        _rulesDAO = new RulesDAO(_myBot);
+    }
 
-	@Override
-	public String getSyntax() {
-		return "";
-	}
+    @Override
+    public String getCommand() {
+        return "!rules";
+    }
 
-	@Override
-	public LinkedList<String> adminHelp() {
-		return new LinkedList<String>();
-	}
+    @Override
+    public String getDescription() {
+        return "Displays channel rules";
+    }
 
-	@Override
-	public void admin(SendChat session, User user, String message) throws IOException {}
+    @Override
+    public String getSyntax() {
+        return "";
+    }
 
-	@Override
-	public void execute() {
-		GregorianCalendar currentDate = new GregorianCalendar();
-		
-		if( restrictRuns.containsKey( _channel.getName().toLowerCase() ) && currentDate.before( restrictRuns.get(_channel.getName().toLowerCase()) ) ){
-			// Ran within the past hour
-			return;
-		} else {
-			currentDate.add(Calendar.MINUTE, 10);
-			restrictRuns.put(_channel.getName().toLowerCase(), currentDate);
-		}
-		
-		LinkedHashMap<Integer, String> rules = _rulesDAO.getChannelRules(_channel.getName());
-		if( rules.size() == 0 ) {
-			_myBot.sendMessageFair(_channel, "No rules found. Go Wild!");
-		} else {
-			for( Map.Entry<Integer, String> rule : rules.entrySet() ){
-				_myBot.sendMessageFair(_channel, rule.getKey() + ") " + rule.getValue());
-			}
-		}
-	}
+    @Override
+    public LinkedList<String> adminHelp() {
+        return new LinkedList<String>();
+    }
 
-	@Override
-	public String getName() {
-		return "rules";
-	}
+    @Override
+    public void admin(SendChat session, User user, String message) throws IOException {
+    }
 
-	@Override
-	public int getAccessLevel() {
-		return 9;
-	}
+    @Override
+    public void execute() {
+        GregorianCalendar currentDate = new GregorianCalendar();
 
-	@Override
-	public void executeAfterDisabled() {}
+        if (restrictRuns.containsKey(_channel.getName().toLowerCase()) && currentDate.before(restrictRuns.get(_channel.getName().toLowerCase()))) {
+            // Ran within the past hour
+            return;
+        } else {
+            currentDate.add(Calendar.MINUTE, 10);
+            restrictRuns.put(_channel.getName().toLowerCase(), currentDate);
+        }
 
-	@Override
-	public void executeAfterEnabled() {}
+        LinkedHashMap<Integer, String> rules = _rulesDAO.getChannelRules(_channel.getName());
+        if (rules.size() == 0) {
+            _myBot.sendMessageFair(_channel, "No rules found. Go Wild!");
+        } else {
+            for (Map.Entry<Integer, String> rule : rules.entrySet()) {
+                _myBot.sendMessageFair(_channel, rule.getKey() + ") " + rule.getValue());
+            }
+        }
+    }
 
-	public void mySchedule() {}
+    @Override
+    public String getName() {
+        return "rules";
+    }
 
-	@Override
-	public TreeMap<String, Integer> getCommandAccessLevels() {
-		// Default command access levels
-		TreeMap<String, Integer> commandAccessLevels = new TreeMap<String, Integer>();
-		for(String command : this.getCommand().split(" ")) {
-			commandAccessLevels.put(command.toLowerCase(), -1);
-		}
-		return commandAccessLevels;
-	}
-	
-	@Override
-	public Boolean acceptPrivateMessage() {
-		return false;
-	}
+    @Override
+    public int getAccessLevel() {
+        return 9;
+    }
+
+    @Override
+    public void executeAfterDisabled() {
+    }
+
+    @Override
+    public void executeAfterEnabled() {
+    }
+
+    public void mySchedule() {
+    }
+
+    @Override
+    public TreeMap<String, Integer> getCommandAccessLevels() {
+        // Default command access levels
+        TreeMap<String, Integer> commandAccessLevels = new TreeMap<String, Integer>();
+        for (String command : this.getCommand().split(" ")) {
+            commandAccessLevels.put(command.toLowerCase(), -1);
+        }
+        return commandAccessLevels;
+    }
+
+    @Override
+    public Boolean acceptPrivateMessage() {
+        return false;
+    }
 }

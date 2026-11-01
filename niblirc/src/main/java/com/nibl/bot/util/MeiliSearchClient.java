@@ -17,7 +17,8 @@ import java.util.List;
  */
 public class MeiliSearchClient {
 
-    public record SearchHit(String name, String size, int number, String botName) {}
+    public record SearchHit(String name, String size, int number, String botName) {
+    }
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -26,16 +27,16 @@ public class MeiliSearchClient {
     private final HttpClient http;
 
     public MeiliSearchClient(String host, String masterKey) {
-            String normalized = (host == null || host.isBlank()) ? "http://meilisearch:7700" : host.trim();
-            while (normalized.endsWith("/")) {
-                normalized = normalized.substring(0, normalized.length() - 1);
-            }
-            this.host = normalized;
-            this.masterKey = masterKey == null ? "" : masterKey;
-            this.http = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofSeconds(5))
-                    .build();
+        String normalized = (host == null || host.isBlank()) ? "http://meilisearch:7700" : host.trim();
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
         }
+        this.host = normalized;
+        this.masterKey = masterKey == null ? "" : masterKey;
+        this.http = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .build();
+    }
 
     /**
      * Fuzzy, typo-tolerant search over active bots' packs, sorted by highest

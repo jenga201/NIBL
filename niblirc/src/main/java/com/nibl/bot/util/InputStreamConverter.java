@@ -5,10 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 
-public class InputStreamConverter
-{
-    public static RandomAccessFile toRandomAccessFile(InputStream is) throws IOException 
-    {
+public class InputStreamConverter {
+    public static RandomAccessFile toRandomAccessFile(InputStream is) throws IOException {
         final File tempFile = File.createTempFile("isc", "tmp");
         RandomAccessFile raf = new RandomAccessFile(tempFile, "rw") {
             @Override
@@ -19,17 +17,16 @@ public class InputStreamConverter
                 }
             }
         };
-  
+
         byte[] buffer = new byte[65536];
-        int    tmp    = 0;
-  
-        while ((tmp = is.read(buffer)) != -1) 
-        {
-          raf.write(buffer, 0, tmp);
+        int tmp = 0;
+
+        while ((tmp = is.read(buffer)) != -1) {
+            raf.write(buffer, 0, tmp);
         }
-         
+
         raf.seek(0);
-         
+
         return raf;
     }
 }
