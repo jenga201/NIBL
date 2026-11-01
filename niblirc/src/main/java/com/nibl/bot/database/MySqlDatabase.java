@@ -1,64 +1,50 @@
 package com.nibl.bot.database;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import com.nibl.bot.Bot;
 import com.nibl.bot.BotExtend;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
 public class MySqlDatabase extends BotExtend implements Database {
 
-    String _userName;
-    String _userPass;
-    String _server;
-    String _port;
-    String _dbName;
-    Connection _connection;
+    private final HikariDataSource dataSource;
 
     public MySqlDatabase(Bot myBot, String userName, String userPass, String server, String port, String dbName) {
         super(myBot);
-        _userName = userName;
-        _userPass = userPass;
-        _server = server;
-        _port = port;
-        _dbName = dbName;
-        connect();
+
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl("jdbc:mysql://" + server + ":" + port + "/" + dbName
+                + "?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&rewriteBatchedStatements=true&useSSL=false&allowPublicKeyRetrieval=true");
+        config.setUsername(userName);
+        config.setPassword(userPass);
+        config.setMaximumPoolSize(12);
+        config.setMinimumIdle(2);
+        config.setConnectionTimeout(10_000);
+        dataSource = new HikariDataSource(config);
+
+        validateConnection();
     }
 
-    private void connect() {
-        try {
-            // Class.forName("com.mysql.jdbc.Driver").newInstance();
-            // String url = "jdbc:mysql://"+_server +":"+_port+"/"+_dbName+"?useUnicode=yes&characterEncoding=UTF-8";
-            String url = "jdbc:mysql://" + _server + ":" + _port + "/" + _dbName
-                    + "?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&rewriteBatchedStatements=true&useSSL=false&allowPublicKeyRetrieval=true";
-            _connection = DriverManager.getConnection(url, _userName, _userPass);
+    /** Fail fast at startup if the database is unreachable. */
+    private void validateConnection() {
+        try (Connection ignored = dataSource.getConnection()) {
             _myBot.getLogger().info("Database connection established");
-        } catch (Exception e) {
+        } catch (SQLException e) {
             _myBot.getLogger().error("Cannot connect to database server", e);
-            disconnect();
+            dataSource.close();
             System.exit(1);
         }
     }
 
+    @Override
     public Connection getConnection() {
         try {
-            if (_connection == null || !_connection.isValid(5))
-                connect();
+            return dataSource.getConnection();
         } catch (SQLException e) {
-            _myBot.getLogger().error("SQL Connection died.  Trying to reconnect. " + e);
-            connect();
-        }
-        return _connection;
-    }
-
-    public void disconnect() {
-        if (_connection != null) {
-            try {
-                _connection.close();
-                _myBot.getLogger().warn("Database connection terminated");
-            } catch (Exception e) { /* ignore close errors */
-            }
+            throw new IllegalStateException("Failed to obtain a database connection", e);
         }
     }
 }

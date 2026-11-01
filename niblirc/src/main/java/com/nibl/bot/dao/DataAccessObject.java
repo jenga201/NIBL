@@ -9,40 +9,39 @@ import com.nibl.bot.Bot;
 import com.nibl.bot.BotExtend;
 
 public abstract class DataAccessObject extends BotExtend {
-	private Connection _connection;
-	
+
 	public DataAccessObject(Bot myBot) {
 		super(myBot);
-		_connection = _myBot.getDatabase().getConnection();
 		// Schema is owned by Laravel migrations (nibl.co.uk/database/migrations);
 		// DAOs no longer create or seed tables at startup.
 	}
-	
-	public final Connection getConnection()
-	{
-		return _connection;
+
+	/**
+	 * A pooled connection for the current operation. Callers must close it
+	 * (try-with-resources) so it returns to the pool.
+	 */
+	public final Connection getConnection() {
+		return _myBot.getDatabase().getConnection();
 	}
-	
+
 	public final boolean tableExists(String table) {
-		// JDBC metadata instead of MySQL-specific `desc <table>` so the DAOs
-		// also work against the in-memory H2 test database.
-		try {
-			DatabaseMetaData metaData = getConnection().getMetaData();
-			try (ResultSet tables = metaData.getTables(null, null, table, new String[] { "TABLE" })) {
+		try (Connection connection = getConnection()) {
+			DatabaseMetaData metaData = connection.getMetaData();
+			try (ResultSet tables = metaData.getTables(null, null, table, new String[]{"TABLE"})) {
 				if (tables.next()) {
 					return true;
 				}
 			}
 			// some drivers report identifiers case-sensitively; retry upper case
-			try (ResultSet tables = metaData.getTables(null, null, table.toUpperCase(), new String[] { "TABLE" })) {
+			try (ResultSet tables = metaData.getTables(null, null, table.toUpperCase(), new String[]{"TABLE"})) {
 				return tables.next();
 			}
 		} catch (SQLException e) {
-			// table doesn't exist eat exception
+			// table doesn't exist — eat the exception
 			return false;
 		}
 	}
-	
+
 	public abstract void createTables();
 	public abstract void dropTables();
 }
