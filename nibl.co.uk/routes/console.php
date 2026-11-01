@@ -17,7 +17,7 @@ Artisan::command('meilisearch:sync', function (PackSearch $packSearch): void {
 
     try {
         $count = $packSearch->sync();
-        $this->info("meilisearch:sync re-indexed {$count} bots.");
+        $this->info("meilisearch:sync dispatched {$count} bot sync jobs.");
     } catch (\Throwable $e) {
         report($e);
         $this->error('meilisearch:sync failed: '.$e->getMessage());

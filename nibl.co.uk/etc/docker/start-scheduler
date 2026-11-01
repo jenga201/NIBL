@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Runtime setup for the niblscheduler container: mirrors start-apache's dir
+# creation and config baking, but without Apache or the migrate step (the web
+# container owns migrations; this container depends on it being healthy).
+
+mkdir -p /var/www/html/var/framework/cache/data \
+         /var/www/html/var/logs
+
+php /var/www/html/artisan config:cache || true
+
+chown -R www-data:www-data /var/www/html/var /var/www/html/bootstrap/cache
+
+# Render the supervisor config with the configured worker count.
+WORKERS=${MEILI_WORKERS:-4}
+sed "s/__WORKERS__/${WORKERS}/g" \
+    /var/www/html/etc/docker/supervisord.conf > /tmp/supervisord.conf
+
+exec supervisord -c /tmp/supervisord.conf

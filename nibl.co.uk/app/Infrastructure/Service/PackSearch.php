@@ -2,6 +2,7 @@
 
 namespace App\Infrastructure\Service;
 
+use App\Jobs\SyncBot;
 use App\Models\Bot;
 use App\Models\Pack;
 use Illuminate\Database\Eloquent\Builder;
@@ -405,28 +406,25 @@ final class PackSearch
     // ------------------------------------------------------------------
 
     /**
-     * Re-index every active bot (online and non-informative) whose packs,
-     * status or informative flag changed since the last run, de-index any bot
-     * that went offline or informative, and drop docs for bots deleted from
-     * MySQL. Returns the number of bots touched.
+     * Enqueue a SyncBot job for every bot whose packs, status or informative
+     * flag changed since the last run, and drop docs for bots deleted from
+     * MySQL. Each job re-indexes or de-indexes based on the bot's current
+     * state. Returns the number of bots dispatched.
      */
     public function sync(): int
     {
         $this->configure();
 
         // Only active bots are ever indexable. Purge any leftover inactive docs
-        // so the read model stays exactly equal to the listable bots. Idempotent:
-        // once the index holds only active bots this filter matches nothing, and
-        // no new doc is ever written with bot_active = false.
+        // so the read model stays exactly equal to the listable bots.
         $this->index()->deleteDocuments(['filter' => 'bot_active = false']);
 
         $bots = Bot::query()->get(['id', 'name', 'status_id', 'informative', 'batchenable', 'last_processed']);
         $synced = DB::table('meilisearch_sync')->get()->keyBy('bot_id');
 
-        $indexed = 0;
+        $dispatched = 0;
         foreach ($bots as $bot) {
             $row = $synced->get((int) $bot->id);
-            $active = (int) $bot->status_id === Bot::STATUS_ACTIVE && (int) $bot->informative === 0;
             $dirty = $row === null
                 || (string) $row->last_processed !== (string) $bot->last_processed
                 || (int) $row->status_id !== (int) $bot->status_id
@@ -436,16 +434,11 @@ final class PackSearch
                 continue;
             }
 
-            if ($active) {
-                $this->indexBot($bot);
-            } else {
-                // Offline or informative: packs are no longer queryable. Drop
-                // them immediately rather than waiting on the next purge, since
-                // a bot that just flipped offline still has bot_active = true
-                // docs in the index.
-                $this->index()->deleteDocuments(['filter' => "bot_id = {$bot->id}"]);
-            }
+            // The job decides index vs delete based on the bot's current state.
+            SyncBot::dispatch((int) $bot->id);
 
+            // Advance the watermark now so a still-running job isn't
+            // re-dispatched next minute; the job resets it on failure.
             DB::table('meilisearch_sync')->updateOrInsert(
                 ['bot_id' => $bot->id],
                 [
@@ -454,20 +447,20 @@ final class PackSearch
                     'informative' => $bot->informative,
                 ]
             );
-            $indexed++;
+            $dispatched++;
         }
 
         // Drop docs for bots that no longer exist in MySQL.
         $currentIds = $bots->pluck('id')->map(static fn ($id) => (int) $id)->all();
         foreach ($synced as $botId => $row) {
             if (! in_array((int) $botId, $currentIds, true)) {
-                $this->index()->deleteDocuments(['filter' => "bot_id = {$botId}"]);
+                $this->deleteBot((int) $botId);
                 DB::table('meilisearch_sync')->where('bot_id', $botId)->delete();
-                $indexed++;
+                $dispatched++;
             }
         }
 
-        return $indexed;
+        return $dispatched;
     }
 
     private function configure(): void
@@ -493,18 +486,20 @@ final class PackSearch
         $index->updateTypoTolerance(['minWordSizeForTypos' => ['oneTypo' => 2, 'twoTypos' => 5]]);
     }
 
-    private function indexBot(Bot $bot): void
+    public function indexBot(Bot $bot): void
     {
         $index = $this->index();
 
         // Remove any packs that disappeared from this bot's current list.
         $index->deleteDocuments(['filter' => "bot_id = {$bot->id}"]);
 
-        // Stream in chunks so a 220k-pack bot stays well under the PHP memory
-        // limit (loading the whole relation at once exhausted 256M).
+        // Stream in large batches: Meilisearch indexes one task at a time and
+        // only parallelises *within* a task, so the old 5k-doc batches under-
+        // used the indexing threads. 50k docs keeps the 220k-pack bot to ~5
+        // POSTs and stays well under the 256M PHP memory limit.
         $bot->packs()
             ->select(['id', 'bot_id', 'number', 'name', 'size', 'sizekbits', 'episode_number', 'last_modified'])
-            ->chunkById(5000, function ($packs) use ($index, $bot): void {
+            ->chunkById(50000, function ($packs) use ($index, $bot): void {
                 $docs = $packs
                     ->map(fn (Pack $pack): array => $this->toDoc($pack, $bot))
                     ->values()
@@ -512,6 +507,11 @@ final class PackSearch
 
                 $index->addDocuments($docs, 'id');
             });
+    }
+
+    public function deleteBot(int $botId): void
+    {
+        $this->index()->deleteDocuments(['filter' => "bot_id = {$botId}"]);
     }
 
     private function toDoc(Pack $pack, Bot $bot): array
