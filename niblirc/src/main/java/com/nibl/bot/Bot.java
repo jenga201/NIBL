@@ -338,6 +338,10 @@ public class Bot {
     }
 
     public void setAdminSession(AdminSession session) {
+        // One admin session per user: replace any existing entry for the same
+        // nick so Logbook never broadcasts each message twice.
+        String nick = session.getUser().getNick().toLowerCase();
+        _adminSessions.removeIf(s -> s.getUser().getNick().toLowerCase().equals(nick));
         _adminSessions.add(session);
     }
 
