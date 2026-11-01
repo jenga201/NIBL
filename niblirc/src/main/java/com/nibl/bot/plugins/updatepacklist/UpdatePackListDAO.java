@@ -210,17 +210,15 @@ public class UpdatePackListDAO extends DataAccessObject {
 	 * {@link PackParseFunctions#packListChanged} preserves {@code last_modified}
 	 * for unchanged content; unchanged packs are skipped entirely.
 	 */
-	public void updateListing(AbstractDistroBot bot) {
+	public void updateListing(AbstractDistroBot bot, List<Pack> oldListing, List<Pack> newListing) {
 		try {
-			List<Pack> dbPacks = getBotPackListFromDatabase(bot);
-
 			Map<Integer, Pack> oldByNumber = new HashMap<Integer, Pack>();
-			for (Pack old : dbPacks) {
+			for (Pack old : oldListing) {
 				oldByNumber.put(old.getNumber(), old);
 			}
 
 			HashSet<Integer> newNumbers = new HashSet<Integer>();
-			for (Pack pack : bot.getListing()) {
+			for (Pack pack : newListing) {
 				newNumbers.add(pack.getNumber());
 			}
 
@@ -233,7 +231,7 @@ public class UpdatePackListDAO extends DataAccessObject {
 					PreparedStatement insert = connection.prepareStatement(insertSql);
 					PreparedStatement delete = connection.prepareStatement(deleteSql)) {
 
-				for (Pack pack : bot.getListing()) {
+				for (Pack pack : newListing) {
 					Pack old = oldByNumber.get(pack.getNumber());
 					if (old == null) {
 						insert.setInt(1, pack.getBotId());
@@ -255,7 +253,7 @@ public class UpdatePackListDAO extends DataAccessObject {
 					}
 				}
 
-				for (Pack old : dbPacks) {
+				for (Pack old : oldListing) {
 					if (!newNumbers.contains(old.getNumber())) {
 						delete.setInt(1, old.getId());
 						delete.addBatch();

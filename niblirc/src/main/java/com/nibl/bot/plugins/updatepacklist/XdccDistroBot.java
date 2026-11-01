@@ -37,8 +37,8 @@ public class XdccDistroBot extends AbstractDistroBot {
 		}
 		
 		if( _packParseFunctions.packListChanged(this, fromFile) ){ // pack list has changed, so update it
+			updateDatabase( fromFile );
 			setListing( fromFile );
-			updateDatabase();
 		}
 		
 	}
