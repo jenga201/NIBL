@@ -156,6 +156,10 @@ public class AdminSession extends BotExtend implements Runnable {
 		return this._session;
 	}
 	
+	public User getUser(){
+		return this._user;
+	}
+	
 	@Override
 	public void run() {
 		try {
