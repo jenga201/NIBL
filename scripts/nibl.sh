@@ -185,11 +185,11 @@ chown -R 1000:1000 data/niblmysql data/meilisearch logs/niblmysql
 docker network ls --format '{{.Name}}' | grep -qx my-bridge \
   || docker network create -d bridge my-bridge
 
-docker compose build --pull
+docker compose build --pull < /dev/null
 
 # Bring MySQL up first, then provision the app user before anything touches the
 # schema.
-docker compose up -d niblmysql
+docker compose up -d niblmysql < /dev/null
 
 # Wait for the niblmysql container's own healthcheck to report healthy.
 status="none"
@@ -203,16 +203,16 @@ done
 [ "$status" = "healthy" ] || { echo "ERROR: niblmysql not healthy after waiting"; exit 1; }
 echo "niblmysql: $status"
 
-bash niblmysql/bootstrap.sh
+bash niblmysql/bootstrap.sh < /dev/null
 
 # Apply pending migrations in a side-load container before the app containers
 # come up. (niblcouk also self-migrates on startup as a backstop for a bare
 # `docker compose up`.)
-docker compose run --rm niblcouk php artisan migrate --force
+docker compose run -T --rm niblcouk php artisan migrate --force < /dev/null
 
 # Bring up the whole stack — this recreates any container whose image changed,
 # so niblcouk/niblirc end up running the freshly built images.
-docker compose up -d --remove-orphans
+docker compose up -d --remove-orphans < /dev/null
 
 # Wait for Meilisearch to be reachable, then backfill the index (later changes
 # are picked up by the minute scheduler).
@@ -226,7 +226,7 @@ for _ in $(seq 1 24); do
 done
 echo "meilisearch: $status"
 
-docker compose run --rm niblcouk php artisan meilisearch:sync
+docker compose run -T --rm niblcouk php artisan meilisearch:sync < /dev/null
 
 # Report container states.
 sleep 10
