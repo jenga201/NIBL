@@ -311,13 +311,17 @@ logs() {
 while :; do
   menu_title
   printf '  choose: '
-  read -r -n 1 key || { printf '\n'; break; }
+  if ! IFS= read -r key; then
+    printf '\n'
+    break
+  fi
   printf '\n'
   case "$key" in
     1) action Deploy deploy ;;
     2) action Rebuild rebuild ;;
     3) logs ;;
     q|Q) printf '\nBye.\n'; exit 0 ;;
+    '') ;;
     *) printf '  Unknown option "%s"\n' "$key" ;;
   esac
 done
