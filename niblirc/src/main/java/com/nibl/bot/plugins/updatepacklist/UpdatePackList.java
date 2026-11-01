@@ -6,6 +6,8 @@ import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.pircbotx.hooks.events.MessageEvent;
 import org.pircbotx.hooks.events.ModeEvent;
@@ -29,6 +31,15 @@ public class UpdatePackList extends Service {
 	
 	private UpdatePackListDAO _updatePackListDAO;
 	private Boolean _running = false;
+
+	// Single-threaded worker that parses + diffs + persists received packlists.
+	// Keeps the (CPU-heavy) packlist ingest off the PircBotX event thread and
+	// serialises it so huge lists are never parsed concurrently.
+	private final ExecutorService _packlistWorker = Executors.newSingleThreadExecutor(r -> {
+		Thread t = new Thread(r, "packlist-processor");
+		t.setDaemon(true);
+		return t;
+	});
 
 	public UpdatePackListFunctions _updatePackListFunctions;
 	String _adminHelp = null;
@@ -174,8 +185,18 @@ public class UpdatePackList extends Service {
 				XdccDistroBot bot = (XdccDistroBot)UpdatePackListFunctions.getBot(nick);
 				if ( bot != null ) {
 					File file = new File(_myBot.getProperty("download_dir").replaceAll("---", "/") + "/" + nick.replaceAll("\\|", ""));
-					event.accept(file).transfer(); // blocking
-					bot.processPackListFromBot(file);
+					event.accept(file).transfer(); // blocking download stays here
+					// Parse + diff + persist on the dedicated worker so the
+					// event thread never pegs on a large packlist and lists are
+					// processed one at a time.
+					final XdccDistroBot botRef = bot;
+					_packlistWorker.execute(() -> {
+						try {
+							botRef.processPackListFromBot(file);
+						} catch (RuntimeException e) {
+							_myBot.getLogger().error("Failed to process packlist for " + nick, e);
+						}
+					});
 				} else {
 					_myBot.getLogger().error(event.getUser().getNick() + " is sending an invalid file: " + filename);
 					_myBot.sendMessageFair(event.getUser().getNick(), "xdcc cancel");
