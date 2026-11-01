@@ -13,47 +13,47 @@ import java.util.regex.Matcher;
 import com.nibl.bot.Bot;
 
 public class BotProperties extends Properties {
-	
-	private static final long serialVersionUID = -5769945073010277585L;
-	
-	Bot _myBot;
-	String configFile;
 
-	public BotProperties(Bot myBot, String configFile) {
-		_myBot = myBot;
-		this.configFile = configFile;
-		loadConfiguration();
-		applyEnvOverrides();
-	}
+    private static final long serialVersionUID = -5769945073010277585L;
 
-	/**
-	 * Environment variables define or override file properties by their
-	 * lower-cased names, so BOT_NAME becomes bot_name and DB_PASS becomes
-	 * db_pass. This lets config.txt omit any value injected by docker-compose.
-	 * Values are never logged.
-	 */
-	private void applyEnvOverrides() {
-		System.getenv().forEach((name, value) -> setProperty(name.toLowerCase(Locale.ROOT), value));
-	}
-	
-	public void loadConfiguration() {
-		File file = new File(configFile);
-		try {
-			_myBot.getLogger().info("Reading config from : " + file.getAbsoluteFile());
-			BufferedReader configFile = new BufferedReader( new FileReader( file ) );
-			//BufferedReaderIterable configFile = new BufferedReaderIterable(_myBot, file);
-    		String temp = "";
-    		while ( (temp = configFile.readLine()) != null ) {
-				load(new StringReader(temp.replaceFirst("!", "").replaceAll(Matcher.quoteReplacement("\\"), Matcher.quoteReplacement("---"))));
-			}
-    		configFile.close();
-		} catch (FileNotFoundException fnfe) {
-			_myBot.getLogger().error("File not found.  Expected at " + file.getAbsolutePath());
-			System.exit(0);
-		} catch (IOException e) {
-			_myBot.getLogger().error("Reading config : " + file.getAbsolutePath());
-		}
-		_myBot.getLogger().info("Config done.");
-	}
+    Bot _myBot;
+    String configFile;
+
+    public BotProperties(Bot myBot, String configFile) {
+        _myBot = myBot;
+        this.configFile = configFile;
+        loadConfiguration();
+        applyEnvOverrides();
+    }
+
+    /**
+     * Environment variables define or override file properties by their
+     * lower-cased names, so BOT_NAME becomes bot_name and DB_PASS becomes
+     * db_pass. This lets config.txt omit any value injected by docker-compose.
+     * Values are never logged.
+     */
+    private void applyEnvOverrides() {
+        System.getenv().forEach((name, value) -> setProperty(name.toLowerCase(Locale.ROOT), value));
+    }
+
+    public void loadConfiguration() {
+        File file = new File(configFile);
+        try {
+            _myBot.getLogger().info("Reading config from : " + file.getAbsoluteFile());
+            BufferedReader configFile = new BufferedReader(new FileReader(file));
+            //BufferedReaderIterable configFile = new BufferedReaderIterable(_myBot, file);
+            String temp = "";
+            while ((temp = configFile.readLine()) != null) {
+                load(new StringReader(temp.replaceFirst("!", "").replaceAll(Matcher.quoteReplacement("\\"), Matcher.quoteReplacement("---"))));
+            }
+            configFile.close();
+        } catch (FileNotFoundException fnfe) {
+            _myBot.getLogger().error("File not found.  Expected at " + file.getAbsolutePath());
+            System.exit(0);
+        } catch (IOException e) {
+            _myBot.getLogger().error("Reading config : " + file.getAbsolutePath());
+        }
+        _myBot.getLogger().info("Config done.");
+    }
 
 }

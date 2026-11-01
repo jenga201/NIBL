@@ -12,49 +12,49 @@ import com.nibl.bot.Bot;
 import com.nibl.bot.BotExtend;
 
 public class DAOFactory extends BotExtend {
-	
-	Map<String, DataAccessObject> _registeredDAO;
 
-	public DAOFactory(Bot myBot) {
-		super(myBot);
-		_registeredDAO = register();
-	}
+    Map<String, DataAccessObject> _registeredDAO;
 
-	public Map<String, DataAccessObject> getRegisteredDOA() {
-		return _registeredDAO;
-	}
+    public DAOFactory(Bot myBot) {
+        super(myBot);
+        _registeredDAO = register();
+    }
 
-	private Map<String, DataAccessObject> register() {
-		Map<String, DataAccessObject> result = new HashMap<String, DataAccessObject>();
+    public Map<String, DataAccessObject> getRegisteredDOA() {
+        return _registeredDAO;
+    }
 
-		Reflections reflections = new Reflections("com.nibl.bot.plugins");
-		
-		 Set<Class<? extends DataAccessObject>> allClasses = 
-		         reflections.getSubTypesOf(DataAccessObject.class);
-		try {
-		    
-		    for(Class<? extends DataAccessObject> dao : allClasses ) {
-		        String simpleClassName = StringUtils.substringAfterLast(dao.getName(), ".");
+    private Map<String, DataAccessObject> register() {
+        Map<String, DataAccessObject> result = new HashMap<String, DataAccessObject>();
+
+        Reflections reflections = new Reflections("com.nibl.bot.plugins");
+
+        Set<Class<? extends DataAccessObject>> allClasses =
+                reflections.getSubTypesOf(DataAccessObject.class);
+        try {
+
+            for (Class<? extends DataAccessObject> dao : allClasses) {
+                String simpleClassName = StringUtils.substringAfterLast(dao.getName(), ".");
                 _myBot.getLogger().info("Class " + simpleClassName + " Loading.");
                 @SuppressWarnings("unchecked")
-                Constructor<DataAccessObject> constructor = (Constructor<DataAccessObject>) dao.getConstructor(new Class[] { Bot.class });
+                Constructor<DataAccessObject> constructor = (Constructor<DataAccessObject>) dao.getConstructor(new Class[]{Bot.class});
                 DataAccessObject dataAccessObject = constructor.newInstance(_myBot);
                 result.put(simpleClassName, dataAccessObject);
-		    }
-		    
-		} catch (Exception e) {
-			_myBot.getLogger().error("You goofed loading the damn classes.",e);
-		}
+            }
 
-		return result;
-	}
+        } catch (Exception e) {
+            _myBot.getLogger().error("You goofed loading the damn classes.", e);
+        }
 
-	public DataAccessObject getDAO(String className) {
-		return _registeredDAO.get(className);
-	}
+        return result;
+    }
 
-	public static void main(String... strings) {
-		System.out.println("done");
-	}
+    public DataAccessObject getDAO(String className) {
+        return _registeredDAO.get(className);
+    }
+
+    public static void main(String... strings) {
+        System.out.println("done");
+    }
 
 }

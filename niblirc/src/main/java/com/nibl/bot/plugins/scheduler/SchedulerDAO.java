@@ -24,7 +24,7 @@ public class SchedulerDAO extends DataAccessObject {
     public void createTables() {
         if (tablesDoesNotExist()) {
             try (Connection connection = getConnection();
-                    Statement statement = connection.createStatement()) {
+                 Statement statement = connection.createStatement()) {
                 statement.execute(
                         "CREATE TABLE `schedules` (`commandName` varchar(50) NOT NULL,`lastRun` timestamp DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (`commandName`)) ENGINE=MyISAM DEFAULT CHARSET=latin1;");
                 _myBot.getLogger().info("created schedules tables");
@@ -41,7 +41,7 @@ public class SchedulerDAO extends DataAccessObject {
     @Override
     public void dropTables() {
         try (Connection connection = getConnection();
-                Statement statement = connection.createStatement()) {
+             Statement statement = connection.createStatement()) {
             statement.execute("DROP TABLE IF EXISTS `schedules`;");
             _myBot.getLogger().info("dropped schedules table");
         } catch (SQLException e) {
@@ -51,7 +51,7 @@ public class SchedulerDAO extends DataAccessObject {
 
     public Date getTime(Command command, int scheduleNumber) {
         try (Connection connection = getConnection();
-                Statement statement = connection.createStatement()) {
+             Statement statement = connection.createStatement()) {
             ResultSet rs = statement.executeQuery("SELECT * FROM `schedules` WHERE `commandName` = '"
                     + command.getName() + "_" + scheduleNumber + "';");
             if (rs.next()) {
@@ -71,7 +71,7 @@ public class SchedulerDAO extends DataAccessObject {
 
     public void setTime(Command command, int scheduleNumber) {
         try (Connection connection = getConnection();
-                Statement statement = connection.createStatement()) {
+             Statement statement = connection.createStatement()) {
             String commandName = command.getName() + "_" + scheduleNumber;
             statement.execute("INSERT INTO `schedules` (commandName) VALUES ('" + commandName
                     + "') ON DUPLICATE KEY UPDATE `lastRun` = CURRENT_TIMESTAMP;");

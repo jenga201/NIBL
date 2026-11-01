@@ -28,7 +28,7 @@ public class DildoDAO extends DataAccessObject {
 
     private String getRandomWord(Integer type) throws SQLException {
         try (Connection connection = getConnection();
-                PreparedStatement pstmt = connection.prepareStatement(randomWordSQL)) {
+             PreparedStatement pstmt = connection.prepareStatement(randomWordSQL)) {
             pstmt.setInt(1, type);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
@@ -42,7 +42,7 @@ public class DildoDAO extends DataAccessObject {
 
     private String getRandomAlternateWord(String value, Integer type) throws SQLException {
         try (Connection connection = getConnection();
-                PreparedStatement pstmt = connection.prepareStatement(randomAlternateWord)) {
+             PreparedStatement pstmt = connection.prepareStatement(randomAlternateWord)) {
             pstmt.setInt(1, type);
             pstmt.setString(2, value);
             try (ResultSet rs = pstmt.executeQuery()) {

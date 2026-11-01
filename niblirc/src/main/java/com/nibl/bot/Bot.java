@@ -106,22 +106,22 @@ public class Bot {
         cb.addServer(this.getProperty("server"), Integer.parseInt(this.getProperty("port")));
         cb.setSocketFactory(new UtilSSLSocketFactory().trustAllCertificates());
 
-		List<Integer> dcc_ports = new ArrayList<Integer>();
-		for(Integer dcc_port : Arrays.stream(this.getProperty("dcc_ports").split(",")).mapToInt(Integer::parseInt).toArray() ) {
-			dcc_ports.add(dcc_port);
-		}
-		cb.setDccPorts(dcc_ports);
+        List<Integer> dcc_ports = new ArrayList<Integer>();
+        for (Integer dcc_port : Arrays.stream(this.getProperty("dcc_ports").split(",")).mapToInt(Integer::parseInt).toArray()) {
+            dcc_ports.add(dcc_port);
+        }
+        cb.setDccPorts(dcc_ports);
 
-		String publicIp = this.getProperty("public_ip");
-		if (publicIp != null && !publicIp.isBlank()) {
-			try {
-				cb.setDccPublicAddress(InetAddress.getByName(publicIp));
-			} catch (UnknownHostException e) {
-				this.getLogger().error("Unable to set DCC public address", e);
-			}
-		} else {
-			this.getLogger().warn("No public IP available; DCC transfer/chat address will not be advertised.");
-		}
+        String publicIp = this.getProperty("public_ip");
+        if (publicIp != null && !publicIp.isBlank()) {
+            try {
+                cb.setDccPublicAddress(InetAddress.getByName(publicIp));
+            } catch (UnknownHostException e) {
+                this.getLogger().error("Unable to set DCC public address", e);
+            }
+        } else {
+            this.getLogger().warn("No public IP available; DCC transfer/chat address will not be advertised.");
+        }
 
         // Set channel information
         String[] channels = this.getProperty("channels").split("\\s");

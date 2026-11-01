@@ -16,6 +16,9 @@ login =
 download_dir =
 #dcc_timeout
 dcc_timeout =
+#remote packlist http timeouts (milliseconds)
+http_connect_timeout =
+http_read_timeout =
 #prints messages to standard output true/false
 verbose =
 #changes nick if already used

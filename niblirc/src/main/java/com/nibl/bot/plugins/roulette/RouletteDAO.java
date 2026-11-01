@@ -12,31 +12,33 @@ import com.nibl.bot.dao.DataAccessObject;
 
 public class RouletteDAO extends DataAccessObject {
 
-	public RouletteDAO(Bot bot) {
-		super(bot);
-	}
+    public RouletteDAO(Bot bot) {
+        super(bot);
+    }
 
-	@Override
-	public void createTables() {}
+    @Override
+    public void createTables() {
+    }
 
-	@Override
-	public void dropTables() {}
+    @Override
+    public void dropTables() {
+    }
 
-	public Integer getAccessLevel(User user) {
-		try {
-			if (user.isVerified()) {
-				try (Connection connection = getConnection();
-						Statement statement = connection.createStatement()) {
-					ResultSet rs = statement.executeQuery("select access from bot_admins where user_name = '" + user.getNick().toLowerCase() + "';");
-					if (rs.next()) {
-						return rs.getInt(1);
-					}
-				}
-			}
-		} catch (SQLException e) {
-			_myBot.getLogger().error("getAccessLevel", e);
-		}
-		return -1;
-	}
+    public Integer getAccessLevel(User user) {
+        try {
+            if (user.isVerified()) {
+                try (Connection connection = getConnection();
+                     Statement statement = connection.createStatement()) {
+                    ResultSet rs = statement.executeQuery("select access from bot_admins where user_name = '" + user.getNick().toLowerCase() + "';");
+                    if (rs.next()) {
+                        return rs.getInt(1);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            _myBot.getLogger().error("getAccessLevel", e);
+        }
+        return -1;
+    }
 
 }
