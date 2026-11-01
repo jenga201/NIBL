@@ -231,6 +231,12 @@ public class UpdatePackListDAO extends DataAccessObject {
 					PreparedStatement insert = connection.prepareStatement(insertSql);
 					PreparedStatement delete = connection.prepareStatement(deleteSql)) {
 
+				// rewriteBatchedStatements=true turns each batch into a single
+				// multi-value statement, which would exhaust the heap for a whole
+				// 220k-pack listing. Flush in chunks to keep each statement small.
+				final int MAX_BATCH = 5000;
+				int pending = 0;
+
 				for (Pack pack : newListing) {
 					Pack old = oldByNumber.get(pack.getNumber());
 					if (old == null) {
@@ -242,6 +248,7 @@ public class UpdatePackListDAO extends DataAccessObject {
 						insert.setInt(6, pack.getEpisodeNumber());
 						insert.setTimestamp(7, pack.getLastModified());
 						insert.addBatch();
+						pending++;
 					} else if (isChanged(old, pack)) {
 						update.setString(1, pack.getName());
 						update.setString(2, pack.getSize());
@@ -250,6 +257,13 @@ public class UpdatePackListDAO extends DataAccessObject {
 						update.setTimestamp(5, pack.getLastModified());
 						update.setInt(6, old.getId());
 						update.addBatch();
+						pending++;
+					}
+					if (pending >= MAX_BATCH) {
+						insert.executeBatch();
+						update.executeBatch();
+						delete.executeBatch();
+						pending = 0;
 					}
 				}
 
@@ -257,12 +271,19 @@ public class UpdatePackListDAO extends DataAccessObject {
 					if (!newNumbers.contains(old.getNumber())) {
 						delete.setInt(1, old.getId());
 						delete.addBatch();
+						pending++;
+						if (pending >= MAX_BATCH) {
+							insert.executeBatch();
+							update.executeBatch();
+							delete.executeBatch();
+							pending = 0;
+						}
 					}
 				}
 
-				delete.executeBatch();
 				insert.executeBatch();
 				update.executeBatch();
+				delete.executeBatch();
 			}
 
 			// Bump last_processed so cache invalidation + warmers can see this
