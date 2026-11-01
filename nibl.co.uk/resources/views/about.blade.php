@@ -44,7 +44,7 @@
 
         <div class="border border-gray-300 rounded-sm p-4 bg-white dark:bg-gray-800 dark:border-gray-800">
             <div class="text-lg font-bold w-full">[M]-V</div>
-            <div class="font-medium text-gray-500">Yo, this guy hosts everything! He's got more bots than cocks. Some people call him the Arutha Master.</div>
+            <div class="font-medium text-gray-500">Some people call him the Arutha Master.</div>
         </div>
 
         <div class="border border-gray-300 rounded-sm p-4 bg-white dark:bg-gray-800 dark:border-gray-800">
@@ -54,24 +54,19 @@
     </article>
 
     <h2 class="font-bold mt-4 text-2xl">Code</h2>
-    <p>Our code is hosted at <a class="underline" href="https://github.com/NIBLCO">github.com/NIBLCO</a>. Most popular packages are linked below:</p>
+    <p>Our code is hosted at <a class="underline" href="https://github.com/jenga201">github.com/jenga201</a>. Most popular packages are linked below:</p>
     <article class="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 gap-4 mt-4">
-        <a href="https://github.com/jenga201/niblirc" target="_blank" rel="noopener" class="border border-gray-300 rounded-sm p-4 bg-white hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-800 dark:hover:bg-gray-900">
-            <div class="text-lg font-medium w-full">niblirc</div>
+        <a href="https://github.com/jenga201/NIBL" target="_blank" rel="noopener" class="border border-gray-300 rounded-sm p-4 bg-white hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-800 dark:hover:bg-gray-900">
+            <div class="text-lg font-medium w-full">NIBL Stack</div>
             <div class="font-medium text-gray-500">#nibl@irc.rizon.com</div>
         </a>
 
         <a href="https://github.com/NIBLCO/niblscripts" target="_blank" rel="noopener" class="border border-gray-300 rounded-sm p-4 bg-white hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-800 dark:hover:bg-gray-900">
-            <div class="text-lg font-medium w-full">niblscripts</div>
+            <div class="text-lg font-medium w-full">NIBL Scripts</div>
             <div class="font-medium text-gray-500">mIRC and HexChat IRC Scripts to use on #NIBL.</div>
         </a>
 
-        <a href="https://github.com/NIBLCO/NIBLoffer" target="_blank" rel="noopener" class="border border-gray-300 rounded-sm p-4 bg-white hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-800 dark:hover:bg-gray-900">
-            <div class="text-lg font-medium w-full">NIBLoffer</div>
-            <div class="font-medium text-gray-500">DCC file transfer bot based on pircbotx.</div>
-        </a>
-
-        <a href="https://github.com/NIBLCO/iroffer" target="_blank" rel="noopener" class="border border-gray-300 rounded-sm p-4 bg-white hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-800 dark:hover:bg-gray-900">
+        <a href="https://github.com/jenga201/iroffer-dinoex" target="_blank" rel="noopener" class="border border-gray-300 rounded-sm p-4 bg-white hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-800 dark:hover:bg-gray-900">
             <div class="text-lg font-medium w-full">iroffer</div>
             <div class="font-medium text-gray-500">iroffer-dinoex config and autoinstall script.</div>
         </a>
