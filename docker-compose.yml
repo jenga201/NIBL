@@ -199,6 +199,7 @@ services:
     environment:
       MEILI_ENV: production
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in .env}
+      MEILI_MAX_INDEXING_THREADS: ${MEILI_MAX_INDEXING_THREADS:-8}
       MEILI_NO_ANALYTICS: "true"
     volumes:
       - ./data/meilisearch:/meili_data
@@ -207,6 +208,64 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - appnet
+
+  niblscheduler:
+    image: niblcouk
+    container_name: niblscheduler
+    init: true
+    command: ["/var/www/html/etc/docker/start-scheduler"]
+    restart: unless-stopped
+    cap_drop:
+      - NET_RAW
+      - NET_ADMIN
+      - NET_BROADCAST
+      - SYS_CHROOT
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/www/html/bootstrap/cache
+    depends_on:
+      niblcouk:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/supervisord.pid"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: "false"
+      APP_KEY: ${WEB_APP_KEY:?Set WEB_APP_KEY in .env}
+      APP_TIMEZONE: UTC
+      DB_CONNECTION: mysql
+      DB_HOST: ${SQL_HOST:-niblmysql}
+      DB_PORT: ${SQL_PORT:-3306}
+      DB_DATABASE: ${SQL_DATABASE:-ooinuza}
+      DB_USERNAME: ${SQL_USER:?Set SQL_USER in .env}
+      DB_PASSWORD: ${SQL_PASSWORD:?Set SQL_PASSWORD in .env}
+      CACHE_STORE: file
+      QUEUE_CONNECTION: database
+      DB_QUEUE_RETRY_AFTER: ${DB_QUEUE_RETRY_AFTER:-3600}
+      LOG_CHANNEL: stderr
+      LOG_DAILY_DAYS: ${WEB_LOG_DAILY_DAYS:-14}
+      LOG_LEVEL: ${WEB_LOG_LEVEL:-info}
+      MEILI_ENABLED: "true"
+      MEILI_HOST: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in .env}
+      MEILI_WORKERS: ${MEILI_WORKERS:-4}
+    volumes:
+      - ./data/nibl.scheduler:/var/www/html/var
+      - ./logs/nibl.scheduler:/var/www/html/var/logs
     logging:
       driver: json-file
       options:

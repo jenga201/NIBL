@@ -26,6 +26,7 @@ FROM php:8.5-apache AS base
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         libzip-dev \
+        supervisor \
         zlib1g-dev \
     && docker-php-ext-install -j"$(nproc)" \
         pdo_mysql \
@@ -97,6 +98,10 @@ COPY --from=vendor --chown=www-data:www-data /var/www/html ./
 
 # Freshly built frontend assets (Vite manifest + hashed bundles)
 COPY --from=assets --chown=www-data:www-data /app/public/ ./public/
+
+# The scheduler entrypoint is exec'd directly by the niblscheduler service, and
+# git clones don't reliably preserve the executable bit.
+RUN chmod +x /var/www/html/etc/docker/start-scheduler
 
 EXPOSE 80
 

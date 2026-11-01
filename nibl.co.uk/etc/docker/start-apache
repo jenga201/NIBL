@@ -28,7 +28,4 @@ fi
 
 chown -R www-data:www-data /var/www/html/var /var/www/html/bootstrap/cache
 
-# Background scheduler: fires meilisearch:sync (Meilisearch index sync) and future jobs.
-php /var/www/html/artisan schedule:work >/dev/null 2>&1 &
-
 apache2-foreground
