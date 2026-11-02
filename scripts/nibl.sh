@@ -312,7 +312,7 @@ logs() {
   read -r svc || svc=""
 
   local remote
-  remote="cd '$REMOTE_DIR' && docker compose logs -f"
+  remote="cd '$REMOTE_DIR' && docker compose logs -f --since 5m"
   [ -n "$svc" ] && remote="$remote '$svc'"
 
   ssh -t "${SSH_OPTS[@]}" "$REMOTE_SSH" "$remote" || true
