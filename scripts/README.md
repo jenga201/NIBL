@@ -21,6 +21,12 @@ It shows a small menu:
   Deploy).
 - **3 Logs** — follow live container logs (`docker compose logs -f`), optionally
   scoped to one service.
+- **4 Diagnostics** — export every container's log plus the host-side `logs/`
+  tree into a timestamped folder on your machine for offline review.
+- **5 Prune** — reclaim disk space on the host: remove stopped containers,
+  dangling images, unused networks, and the build cache (`docker system prune
+  -f`; volumes and tagged images are never touched).
+- **6 SQL** — open an interactive MySQL shell on `niblmysql` as `root`.
 
 It manages the stack over SSH; nothing runs on your machine except `ssh`/`scp`
 and the remote commands. It does **not** `git commit` or `git push` — you push
@@ -65,6 +71,9 @@ Edit these at the top of the script before the first run:
 | `REPO_URL` | The `NIBL` Git remote (HTTPS read-only by default) |
 | `REMOTE_BRANCH` | Production branch (default `main`; merge `develop` → `main` for releases) |
 | `SITE_HOST` / `SITE_URL` / `API_URL` | Final HTTP verification targets |
+| `SERVICES` | Compose services offered by **Logs** and exported by **Diagnostics** |
+| `LOCAL_LOG_EXPORT_DIR` | Local destination for Diagnostics bundles (default `NIBL/logs-export/`, gitignored) |
+| `DIAG_LOG_TAIL` | Lines of history exported per service (default `all`; set a number to cap very long logs) |
 
 ## Deploy — order of operations
 
@@ -87,6 +96,38 @@ works on a host that has already been deployed.
 
 **Logs** runs `docker compose logs -f` on the host (optionally scoped to one
 service) so you can watch container output live.
+
+## Diagnostics
+
+**Diagnostics** collects everything needed to debug a problem offline, without
+touching the running stack:
+
+1. On the host it writes one file per compose service
+   (`docker compose logs --no-color --timestamps --tail "$DIAG_LOG_TAIL"`), plus
+   `docker ps -a`, `docker compose ps`, `docker version` and a full
+   `docker inspect` of every container.
+2. It copies the host's `logs/` tree (per-project application log files:
+   `niblirc/`, `nibl.co.uk/`, `nibl.scheduler/`, `niblmysql/`, `swag/`).
+3. Everything is tarred on the host, downloaded with `scp`, and unpacked into
+   `LOCAL_LOG_EXPORT_DIR/<timestamp>/`; the remote tarball is then removed.
+
+Bundles contain production log lines, so `logs-export/` is gitignored — review
+them locally and never commit or paste them wholesale.
+
+## Prune
+
+**Prune** prints `docker system df` on the host, runs `docker system prune -f`
+(removes stopped containers, dangling images, unused networks, and the build
+cache — never volumes, tagged images, or running containers), then prints
+`docker system df` again so you can see what was reclaimed. It targets the
+production host only; the local development host is governed by
+`.github/instructions/DOCKER.md`, not by this script.
+
+## SQL
+
+**SQL** opens an interactive MySQL client inside the `niblmysql` container as the
+`root` account (no default schema), for ad-hoc queries over the production
+database. Exit with `exit` or `Ctrl+D`.
 
 ## Idempotency & safety notes
 

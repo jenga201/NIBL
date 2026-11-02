@@ -8,11 +8,14 @@ import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.pircbotx.hooks.events.MessageEvent;
 import org.pircbotx.hooks.events.ModeEvent;
 import org.pircbotx.hooks.events.NoticeEvent;
 import org.pircbotx.User;
+import org.pircbotx.dcc.FileTransferStatus;
+import org.pircbotx.dcc.ReceiveFileTransfer;
 import org.pircbotx.dcc.SendChat;
 import org.pircbotx.hooks.events.HalfOpEvent;
 import org.pircbotx.hooks.events.IncomingFileTransferEvent;
@@ -31,6 +34,10 @@ public class UpdatePackList extends Service {
 
     private UpdatePackListDAO _updatePackListDAO;
     private Boolean _running = false;
+
+    // Bounded wait for a DCC packlist download (SakuraServ's ~20 MB list can
+    // take several minutes over IRC DCC; never hang the worker forever).
+    private static final long DCC_RECEIVE_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(15);
 
     // Single-threaded worker that parses + diffs + persists received packlists.
     // Keeps the (CPU-heavy) packlist ingest off the PircBotX event thread and
@@ -179,36 +186,72 @@ public class UpdatePackList extends Service {
     public void onIncomingFileTransfer(IncomingFileTransferEvent event) {
         String nick = event.getUser().getNick();
         String filename = event.getSafeFilename();
+
+        if (!filename.toLowerCase().endsWith(".txt")) {
+            _myBot.getLogger().error(nick + " is sending an invalid file: " + filename);
+            _myBot.sendMessageFair(nick, "xdcc cancel");
+            return;
+        }
+
+        XdccDistroBot bot = (XdccDistroBot) UpdatePackListFunctions.getBot(nick);
+        if (bot == null) {
+            _myBot.getLogger().error(nick + " is sending an invalid file: " + filename);
+            _myBot.sendMessageFair(nick, "xdcc cancel");
+            return;
+        }
+
+        // Unique destination per transfer so duplicate/overlapping DCC offers
+        // from the same bot never collide on one file. PircBotX's accept()
+        // already starts the download on its own executor, so calling
+        // transfer() again would fire it twice and throw
+        // "Cannot receive file twice".
+        File file = new File(downloadDir(), nick.replaceAll("\\|", "") + "-" + System.nanoTime() + ".txt");
+        final XdccDistroBot botRef = bot;
+
         try {
-            if (filename.substring(filename.length() - 4, filename.length()).equals(".txt")) {
-                XdccDistroBot bot = (XdccDistroBot) UpdatePackListFunctions.getBot(nick);
-                if (bot != null) {
-                    File file = new File(_myBot.getProperty("download_dir").replaceAll("---", "/") + "/" + nick.replaceAll("\\|", ""));
-                    event.accept(file).transfer(); // blocking download stays here
-                    // Parse + diff + persist on the dedicated worker so the
-                    // event thread never pegs on a large packlist and lists are
-                    // processed one at a time.
-                    final XdccDistroBot botRef = bot;
-                    _packlistWorker.execute(() -> {
-                        try {
-                            botRef.processPackListFromBot(file);
-                        } catch (RuntimeException e) {
-                            _myBot.getLogger().error("Failed to process packlist for " + nick, e);
-                        }
-                    });
-                } else {
-                    _myBot.getLogger().error(event.getUser().getNick() + " is sending an invalid file: " + filename);
-                    _myBot.sendMessageFair(event.getUser().getNick(), "xdcc cancel");
+            ReceiveFileTransfer transfer = event.accept(file);
+            FileTransferStatus status = transfer.getFileTransferStatus();
+
+            // Wait for the download, then parse/diff/persist, on the dedicated
+            // worker so the IRC event thread never blocks on a large packlist.
+            _packlistWorker.execute(() -> {
+                try {
+                    awaitFileTransfer(status, file, nick);
+                    if (!file.exists() || file.length() == 0) {
+                        _myBot.getLogger().warn("Packlist for " + nick + " arrived empty or missing; skipping.");
+                        return;
+                    }
+                    botRef.processPackListFromBot(file);
+                } catch (RuntimeException e) {
+                    _myBot.getLogger().error("Failed to process packlist for " + nick, e);
                 }
-            } else {
-                _myBot.getLogger().error(event.getUser().getNick() + " is sending an invalid file: " + filename);
-                _myBot.sendMessageFair(event.getUser().getNick(), "xdcc cancel");
-            }
+            });
         } catch (Exception e) {
             _myBot.getLogger().error("I crapped out getting file (onIncomingFileTransfer): " + nick + " : " + e.toString());
+        }
+    }
+
+    private String downloadDir() {
+        return _myBot.getProperty("download_dir").replaceAll("---", "/");
+    }
+
+    /**
+     * Block (with a timeout) until the DCC download finishes. Runs on the
+     * packlist worker, not the IRC event thread.
+     */
+    private void awaitFileTransfer(FileTransferStatus status, File file, String nick) {
+        long deadline = System.currentTimeMillis() + DCC_RECEIVE_TIMEOUT_MS;
+        while (!status.isFinished()) {
+            if (System.currentTimeMillis() >= deadline) {
+                _myBot.getLogger().warn("Timed out waiting for packlist from " + nick + "; deleting partial file.");
+                file.delete();
+                return;
+            }
             try {
-                //transfer.close();
-            } catch (Exception e2) {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
             }
         }
     }

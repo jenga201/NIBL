@@ -40,6 +40,9 @@ niblirc/target/
 # ============================================================================
 logs/
 
+# Diagnostics bundles downloaded from the production host by scripts/nibl.sh
+logs-export/
+
 # ============================================================================
 # Runtime data (one subdir per project, relative to the repo root)
 # ============================================================================
