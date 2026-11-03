@@ -5,8 +5,8 @@ export const ALL_CHUNK_SIZE = 200;
 const MIN_QUERY_LENGTH = 3;
 
 export type PackListSource =
-    | { mode: 'bot'; botId: number; query: string }
-    | { mode: 'search'; query: string };
+    | { mode: 'bot'; botId: number; query: string; fuzzy: boolean }
+    | { mode: 'search'; query: string; fuzzy: boolean };
 
 export function buildKeysetUrl(
     source: PackListSource,
@@ -29,12 +29,14 @@ export function buildKeysetUrl(
         if (source.query.trim().length >= MIN_QUERY_LENGTH) {
             path = `/api/search/${source.botId}/page`;
             params.set('query', source.query);
+            params.set('fuzzy', source.fuzzy ? '1' : '0');
         } else {
             path = `/api/packs/${source.botId}/page`;
         }
     } else {
         path = '/api/search/page';
         params.set('query', source.query);
+        params.set('fuzzy', source.fuzzy ? '1' : '0');
     }
 
     return `${path}?${params.toString()}`;

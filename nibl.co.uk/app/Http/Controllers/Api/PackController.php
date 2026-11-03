@@ -84,7 +84,8 @@ final class PackController extends Controller
                 $request->direction(),
                 $request->size(),
                 $request->cursor(),
-                $request->episodeNumber()
+                $request->episodeNumber(),
+                $request->fuzzy()
             )
         );
     }
@@ -109,7 +110,8 @@ final class PackController extends Controller
                 $request->direction(),
                 $request->size(),
                 $request->cursor(),
-                $request->episodeNumber()
+                $request->episodeNumber(),
+                $request->fuzzy()
             )
         );
     }

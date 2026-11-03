@@ -3,10 +3,12 @@ import { useEffect, useState, type FormEvent } from 'react';
 type Props = {
     heading: string;
     value: string;
+    fuzzy: boolean;
+    onToggleFuzzy: (fuzzy: boolean) => void;
     onSubmit: (query: string) => void;
 };
 
-export function SearchBox({ heading, value, onSubmit }: Props) {
+export function SearchBox({ heading, value, fuzzy, onToggleFuzzy, onSubmit }: Props) {
     const [draft, setDraft] = useState(value);
 
     useEffect(() => {
@@ -53,6 +55,15 @@ export function SearchBox({ heading, value, onSubmit }: Props) {
                     </svg>
                 </button>
             </form>
+            <label className="mt-2 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input
+                    type="checkbox"
+                    checked={fuzzy}
+                    onChange={(event) => onToggleFuzzy(event.target.checked)}
+                    className="form-tick appearance-none h-5 w-5 border border-gray-300 rounded checked:bg-blue-600 checked:border-transparent focus:outline-none dark:border-gray-600 dark:bg-gray-600"
+                />
+                Fuzzy search
+            </label>
         </div>
     );
 }

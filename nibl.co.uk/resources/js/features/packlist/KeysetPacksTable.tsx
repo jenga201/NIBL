@@ -39,10 +39,11 @@ export function KeysetPacksTable({ source, sort, pageSize, enabled, columns, emp
     const [cursor, setCursor] = useState<string | null>(null);
     const botId = source.mode === 'bot' ? source.botId : null;
     const query = source.query;
+    const fuzzy = source.fuzzy;
 
     useEffect(() => {
         setCursor(null);
-    }, [botId, query, sort.key, sort.direction, pageSize]);
+    }, [botId, query, fuzzy, sort.key, sort.direction, pageSize]);
 
     const { data, isLoading, isError } = useKeysetPacks({ source, sort, pageSize, cursor, enabled });
 

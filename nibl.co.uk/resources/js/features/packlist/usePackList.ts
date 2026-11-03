@@ -13,10 +13,10 @@ type CommonParams = {
     enabled: boolean;
 };
 
-export function sourceKey(source: PackListSource): (string | number | null)[] {
+export function sourceKey(source: PackListSource): (string | number | boolean | null)[] {
     return source.mode === 'bot'
-        ? [source.mode, source.botId, source.query]
-        : [source.mode, null, source.query];
+        ? [source.mode, source.botId, source.query, source.fuzzy]
+        : [source.mode, null, source.query, source.fuzzy];
 }
 
 export function useKeysetPacks({
