@@ -14,9 +14,9 @@
 #                re-sync Meilisearch. Skips first-time setup and verification
 #                (assumes a prior Deploy).
 #   3) Logs    — follow live container logs on the host (`docker compose logs -f`).
-#   4) Diagnostics — export every container's logs, a full MySQL dump, and the
-#                host `logs/` tree into a timestamped folder locally for
-#                offline review.
+#   4) Diagnostics — export every container's logs, a full MySQL dump, the
+#                host `logs/` tree, and the on-disk botlists into a timestamped
+#                folder locally for offline review.
 #   5) Prune   — reclaim disk space: remove stopped containers, unused networks,
 #                dangling images, and the build cache (`docker system prune`).
 #   6) SQL     — open an interactive MySQL shell on niblmysql as root.
@@ -85,7 +85,7 @@ menu_title() {
   printf '  \033[1m1\033[0m  Deploy   full pipeline (pull, seed, build, migrate, verify)\n'
   printf '  \033[1m2\033[0m  Rebuild  pull + build + migrate/sync (no first-time setup)\n'
   printf '  \033[1m3\033[0m  Logs     follow live container logs\n'
-  printf '  \033[1m4\033[0m  Diagnostics  export logs + full DB dump + logs/ locally\n'
+  printf '  \033[1m4\033[0m  Diagnostics  export logs + DB dump + logs/ + botlists locally\n'
   printf '  \033[1m5\033[0m  Prune     recover disk space (stopped containers, images, cache)\n'
   printf '  \033[1m6\033[0m  SQL       interactive MySQL shell on niblmysql (root)\n'
   printf '  \033[1mq\033[0m  Quit\n\n'
@@ -342,8 +342,9 @@ sql() {
 # ---------------------------------------------------------------------------
 
 # On the remote host, bundle every compose service's log, the Docker/container
-# inventory, the host-side `logs/` directory, and a full MySQL dump; download it
-# and unpack it under LOCAL_LOG_EXPORT_DIR/<timestamp>/ for offline review.
+# inventory, the host-side `logs/` directory, the on-disk botlists
+# (data/niblirc), and a full MySQL dump; download it and unpack it under
+# LOCAL_LOG_EXPORT_DIR/<timestamp>/ for offline review.
 diagnostics() {
   preflight
 
@@ -398,6 +399,14 @@ docker inspect $(docker compose ps -aq) >"$bundle/docker-inspect.json" 2>&1 || t
 # Application-written log files (per-project subdirectories).
 if [ -d "$root/logs" ]; then
   cp -a "$root/logs" "$bundle/logs" || true
+fi
+
+# Botlists on disk: $root/data/niblirc is the directory bind-mounted into the
+# niblirc container at /data/botlists. Included so a stale bot's MySQL/Meili
+# state can be compared against the exact packlist it downloaded. They are
+# absent unless keep_packlist_files is enabled or a copy was dropped here.
+if [ -d "$root/data/niblirc" ]; then
+  cp -a "$root/data/niblirc" "$bundle/botlists" || true
 fi
 
 # Full MySQL dump via the existing backup tool (also refreshes the 7-dump

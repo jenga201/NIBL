@@ -14,6 +14,9 @@ admin_channel =
 login =
 #download directory
 download_dir =
+# keep downloaded packlist files on disk after processing (true = keep for
+# debugging; blank or any other value deletes them as normal)
+keep_packlist_files =
 #dcc_timeout
 dcc_timeout =
 #remote packlist http timeouts (milliseconds)

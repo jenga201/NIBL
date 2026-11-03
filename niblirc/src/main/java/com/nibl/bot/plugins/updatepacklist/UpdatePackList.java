@@ -243,8 +243,12 @@ public class UpdatePackList extends Service {
         long deadline = System.currentTimeMillis() + DCC_RECEIVE_TIMEOUT_MS;
         while (!status.isFinished()) {
             if (System.currentTimeMillis() >= deadline) {
-                _myBot.getLogger().warn("Timed out waiting for packlist from " + nick + "; deleting partial file.");
-                file.delete();
+                if (keepPacklistFiles()) {
+                    _myBot.getLogger().warn("Timed out waiting for packlist from " + nick + "; keeping partial file for inspection.");
+                } else {
+                    _myBot.getLogger().warn("Timed out waiting for packlist from " + nick + "; deleting partial file.");
+                    file.delete();
+                }
                 return;
             }
             try {
@@ -254,6 +258,11 @@ public class UpdatePackList extends Service {
                 return;
             }
         }
+    }
+
+    private boolean keepPacklistFiles() {
+        String value = _myBot.getProperty("keep_packlist_files");
+        return value != null && "true".equalsIgnoreCase(value.trim());
     }
 
     @Override
