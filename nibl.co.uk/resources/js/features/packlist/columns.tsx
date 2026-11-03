@@ -72,8 +72,8 @@ export function buildColumns({
                 const canBatch = showBot ? Boolean(pack.bot_batch_enabled) : botBatchEnabled;
 
                 return (
-                    <div className="flex items-center gap-2">
-                        <CopyButton pack={pack} botName={botNameFor(pack)} />
+                    <div className="flex items-center justify-center gap-2">
+                        {!batchMode && <CopyButton pack={pack} botName={botNameFor(pack)} />}
                         {batchMode && canBatch && (
                             <label className="flex items-center space-x-2">
                                 <input

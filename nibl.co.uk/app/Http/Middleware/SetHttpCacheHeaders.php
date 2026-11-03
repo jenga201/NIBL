@@ -9,9 +9,10 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Applies a safe caching policy to web (HTML) responses.
  *
- * HTML now varies by cookie (the legacy site-view toggle and the legacy color
- * theme), so it must be revalidated on every request — a long-lived public
- * cache would keep serving the wrong template. Redirects are never cached.
+ * HTML varies by cookie (site-view, JS mode, color theme, fuzzy preference),
+ * so it must be revalidated on every request. An ETag lets the browser send a
+ * conditional request and receive a 304 when the rendered page hasn't changed,
+ * skipping the body re-transfer without ever serving stale markup.
  */
 final class SetHttpCacheHeaders
 {
@@ -26,6 +27,22 @@ final class SetHttpCacheHeaders
             $response->headers->set('Cache-Control', 'no-store');
 
             return $response;
+        }
+
+        if ($request->isMethodCacheable()
+            && $response->isSuccessful()
+            && str_contains((string) $response->headers->get('Content-Type'), 'text/html')) {
+            $content = $response->getContent();
+
+            if (is_string($content) && $content !== '') {
+                $etag = '"'.md5($content).'"';
+
+                $response->setEtag($etag);
+
+                if ($request->headers->get('If-None-Match') === $etag) {
+                    return $response->setNotModified();
+                }
+            }
         }
 
         $response->headers->set('Cache-Control', 'public, max-age=0, must-revalidate');
