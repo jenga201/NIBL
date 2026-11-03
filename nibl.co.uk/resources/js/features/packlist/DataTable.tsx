@@ -80,6 +80,7 @@ export function DataTable({ data, columns, sort, onSortChange }: Props) {
                                     'py-2 px-3 border-b border-gray-800 bg-gray-800 text-gray-200 dark:bg-gray-900',
                                     index === 0 ? 'rounded-tl' : '',
                                     index === headerGroup.headers.length - 1 ? 'rounded-tr' : '',
+                                    id === 'actions' ? 'text-center' : '',
                                 ].join(' ');
 
                                 return (

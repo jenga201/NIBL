@@ -25,6 +25,9 @@ $app = Application::configure(basePath: dirname(__DIR__))
 
         $middleware->encryptCookies(except: [
             \App\Domain\SiteView::COOKIE,
+            \App\Domain\FuzzySearch::COOKIE,
+            \App\Domain\JsMode::COOKIE,
+            \App\Domain\Theme::COOKIE,
             \App\Infrastructure\Service\LegacyThemeService::COOKIE,
         ]);
 

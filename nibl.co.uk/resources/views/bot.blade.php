@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@php($noJs = \App\Domain\JsMode::current()->isDisabled())
+
 @section('title', 'Bot')
 
 @section('header', 'Bot ' . $bot->getName())
@@ -14,10 +16,23 @@
         </div>
     </div>
 
-    <div
-        data-pack-table
-        data-bot-id="{{ $bot->getId() }}"
-        data-bot-name="{{ $bot->getName() }}"
-        data-batch-enabled="{{ $bot->isBatchEnabled() ? 'true' : 'false' }}"
-    ></div>
+    @if ($noJs)
+        @include('partials.pack-list', [
+            'packs' => $packs ?? collect(),
+            'total' => $total ?? 0,
+            'next' => $next ?? null,
+            'prev' => $prev ?? null,
+            'searchQuery' => $searchQuery ?? '',
+            'fuzzy' => $fuzzy ?? true,
+            'showBot' => false,
+            'botName' => $bot->getName(),
+        ])
+    @else
+        <div
+            data-pack-table
+            data-bot-id="{{ $bot->getId() }}"
+            data-bot-name="{{ $bot->getName() }}"
+            data-batch-enabled="{{ $bot->isBatchEnabled() ? 'true' : 'false' }}"
+        ></div>
+    @endif
 @endsection

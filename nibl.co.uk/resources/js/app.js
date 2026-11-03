@@ -1,4 +1,5 @@
 import './bootstrap';
+import './home-copy';
 
 const showElem = (el) => {
     el.classList.remove('hidden');
