@@ -66,12 +66,14 @@ final class PackSearch
      *
      * $botId === null → search across all active bots (query required).
      * $botId !== null → one bot's packs (query optional; search-in-bot).
+     * $fuzzy=false → skip Meilisearch's typo-tolerant search and use the
+     * exact Eloquent REGEXP matcher (legacy parity) even when Meili is on.
      *
      * @return array{packs: Collection<int, Pack>, total: int, next: ?string, prev: ?string}
      */
-    public function keysetPage(?int $botId, string $query, string $sort, string $direction, int $size, ?string $cursor, int $episodeNumber = 0): array
+    public function keysetPage(?int $botId, string $query, string $sort, string $direction, int $size, ?string $cursor, int $episodeNumber = 0, bool $fuzzy = true): array
     {
-        if ($this->enabled()) {
+        if ($this->enabled() && $fuzzy) {
             $filters = $botId === null ? ['bot_active = true'] : ["bot_id = {$botId}"];
             if ($episodeNumber > 0) {
                 $filters[] = "episode_number = {$episodeNumber}";

@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import type { PackListSource } from './api';
 import { BatchControls } from './BatchControls';
 import { copyToClipboard } from './clipboard';
+import { readFuzzyPreference, writeFuzzyPreference } from './cookies';
 import { buildColumns } from './columns';
 import { formatBatchXDCC } from './format';
 import { InfinitePacksTable } from './InfinitePacksTable';
@@ -26,10 +27,17 @@ export function PackApp({ botId, botName, batchEnabled }: Props) {
     const hasValidQuery = query.trim().length >= 3;
     const enabled = !showBot || hasValidQuery;
 
+    const [fuzzy, setFuzzy] = useState<boolean>(readFuzzyPreference);
+
+    const toggleFuzzy = useCallback((next: boolean) => {
+        setFuzzy(next);
+        writeFuzzyPreference(next);
+    }, []);
+
     const source: PackListSource =
         botId !== undefined
-            ? { mode: 'bot', botId, query }
-            : { mode: 'search', query };
+            ? { mode: 'bot', botId, query, fuzzy }
+            : { mode: 'search', query, fuzzy };
 
     const [batchMode, setBatchMode] = useState(false);
     const [selected, setSelected] = useState<Map<string, number[]>>(new Map());
@@ -101,6 +109,8 @@ export function PackApp({ botId, botName, batchEnabled }: Props) {
             <SearchBox
                 heading={showBot ? 'Search in selected bot packs' : 'Search form'}
                 value={query}
+                fuzzy={fuzzy}
+                onToggleFuzzy={toggleFuzzy}
                 onSubmit={(nextQuery) => update({ query: nextQuery, page: 1 })}
             />
 
@@ -117,7 +127,7 @@ export function PackApp({ botId, botName, batchEnabled }: Props) {
                             <PageSizeSelect value={pageSize} onChange={(value) => update({ pageSize: value, page: 1 })} />
                         </div>
                         <BatchControls
-                            available={showBot ? batchEnabled : true}
+                            available={showBot ? true : batchEnabled}
                             enabled={batchMode}
                             selectedCount={selectedCount}
                             onEnable={() => setBatchMode(true)}

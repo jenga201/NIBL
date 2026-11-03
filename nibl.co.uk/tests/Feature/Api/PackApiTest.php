@@ -144,6 +144,22 @@ class PackApiTest extends TestCase
         $this->getJson('/api/search')->assertStatus(422);
     }
 
+    public function test_search_accepts_fuzzy_flag(): void
+    {
+        $this->getJson('/api/search/page?query=show&fuzzy=1')
+            ->assertOk()
+            ->assertJsonCount(3, 'data');
+
+        $this->getJson('/api/search/page?query=show&fuzzy=0')
+            ->assertOk()
+            ->assertJsonCount(3, 'data');
+    }
+
+    public function test_search_rejects_invalid_fuzzy_flag(): void
+    {
+        $this->getJson('/api/search?query=show&fuzzy=banana')->assertStatus(422);
+    }
+
     public function test_invalid_pagination_parameters_are_rejected(): void
     {
         $this->getJson('/api/packs/'.$this->bot->id.'/page?size='.(Pack::MAX_PAGE_SIZE + 1))->assertStatus(422);
