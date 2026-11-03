@@ -32,7 +32,9 @@ public class XdccDistroBot extends AbstractDistroBot {
         }
         _myBot.getLogger().trace("Process " + getType() + ": " + getName());
         List<Pack> fromFile = parseList(file);
-        if (!file.delete()) {
+        if (keepPacklistFiles()) {
+            _myBot.getLogger().info("Keeping packlist file for " + getName() + " (" + file.length() + " bytes): " + file.getName());
+        } else if (!file.delete()) {
             _myBot.getLogger().error(_updatePackListDAO.getUpdatePackList().getPrefix() + "Could not delete packlist file for: " + getName());
         }
 
@@ -41,6 +43,17 @@ public class XdccDistroBot extends AbstractDistroBot {
             setListing(fromFile);
         }
 
+    }
+
+    /**
+     * When {@code keep_packlist_files=true} (config.txt or the KEEP_PACKLIST_FILES
+     * environment variable), the downloaded packlist is left on disk instead of
+     * deleted, so a truncated or otherwise bad list can be inspected after the
+     * fact instead of vanishing before it can be compared to the database.
+     */
+    private boolean keepPacklistFiles() {
+        String value = _myBot.getProperty("keep_packlist_files");
+        return value != null && "true".equalsIgnoreCase(value.trim());
     }
 
     @Override

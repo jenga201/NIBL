@@ -69,6 +69,7 @@ services:
       DB_NAME: ${SQL_DATABASE:-ooinuza}
       MEILI_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in .env}
+      KEEP_PACKLIST_FILES: ${KEEP_PACKLIST_FILES:-false}
     ports:
       - "46571:46571"
       - "46572:46572"
