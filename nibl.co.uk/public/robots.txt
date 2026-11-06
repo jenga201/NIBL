@@ -1,2 +1,7 @@
+# Third-party crawlers that index the site into their own tools but send us
+# no real visitors; opted out to keep crawl noise down.
+User-agent: MJ12bot
+Disallow: /
+
 User-agent: SemrushBot
 Disallow: /
