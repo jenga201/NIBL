@@ -313,6 +313,7 @@ services:
       APP_DEBUG: "false"
       APP_KEY: ${WEB_APP_KEY:?Set WEB_APP_KEY in .env}
       LOG_CHANNEL: stderr
+      CACHE_STORE: file
       BROADCAST_CONNECTION: reverb
       REVERB_APP_ID: ${REVERB_APP_ID:?Set REVERB_APP_ID in .env}
       REVERB_APP_KEY: ${REVERB_APP_KEY:?Set REVERB_APP_KEY in .env}
