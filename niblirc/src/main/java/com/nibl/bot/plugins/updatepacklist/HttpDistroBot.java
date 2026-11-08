@@ -23,7 +23,6 @@ public class HttpDistroBot extends AbstractDistroBot {
             List<Pack> fromWeb = parseList();
             if (_packParseFunctions.packListChanged(this, fromWeb)) { // pack list has changed, so update it
                 updateDatabase(fromWeb);
-                setListing(fromWeb);
             }
             _myBot.getLogger().trace("Finish Compare and update database");
         }

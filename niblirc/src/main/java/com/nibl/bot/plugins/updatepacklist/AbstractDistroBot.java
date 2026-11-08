@@ -109,6 +109,11 @@ public abstract class AbstractDistroBot extends BotExtend {
 
     public void updateDatabase(List<Pack> newListing) {
         _updatePackListDAO.updateListing(this, getListing(), newListing);
+        // Reload the persisted listing so in-memory packs keep their real
+        // database ids (and renumbered numbers) for the next diff. Without this
+        // the freshly inserted packs keep their synthetic id and the next update
+        // can no longer target their rows by id.
+        setListing(_updatePackListDAO.getBotPackListFromDatabase(this));
     }
 
 

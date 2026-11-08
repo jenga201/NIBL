@@ -17,7 +17,6 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
 import com.nibl.bot.testing.TestBot;
 
 /**
@@ -80,7 +79,7 @@ class UpdatePackListDAOTest {
         listing.add(pack(3, "Show Three - 03", "9.1M", 9542041L, 3));
         distroBot.setListing(listing);
 
-                dao.updateListing(distroBot, dao.getBotPackListFromDatabase(distroBot), listing);
+        dao.updateListing(distroBot, dao.getBotPackListFromDatabase(distroBot), listing);
 
         List<Pack> fromDb = dao.getBotPackListFromDatabase(distroBot);
         assertEquals(3, fromDb.size());
@@ -101,12 +100,45 @@ class UpdatePackListDAOTest {
         listing.add(pack(11, "Brand New Show - 11", "300M", 314572800L, 11));
         distroBot.setListing(listing);
 
-                dao.updateListing(distroBot, dao.getBotPackListFromDatabase(distroBot), listing);
+        dao.updateListing(distroBot, dao.getBotPackListFromDatabase(distroBot), listing);
 
         List<Pack> fromDb = dao.getBotPackListFromDatabase(distroBot);
         assertEquals(2, fromDb.size(), "old packs must be deleted before the new listing is inserted");
         assertTrue(fromDb.stream().noneMatch(p -> p.getNumber() == 1));
         assertTrue(fromDb.stream().anyMatch(p -> p.getNumber() == 10 && p.getName().equals("Renamed Show - 10")));
+    }
+
+    @Test
+    void updateListingRenumbersPacksWhenAPackIsInsertedInTheMiddle() throws SQLException {
+        AbstractDistroBot distroBot = dao.getBotFromDatabase("FakeDistro");
+
+        List<Pack> existing = new LinkedList<>();
+        existing.add(pack(1, "Alpha - 01", "100M", 104857600L, 1));
+        existing.add(pack(2, "Bravo - 02", "100M", 104857600L, 2));
+        existing.add(pack(3, "Charlie - 03", "100M", 104857600L, 3));
+        dao.updateListing(distroBot, dao.getBotPackListFromDatabase(distroBot), existing);
+        List<Pack> seeded = dao.getBotPackListFromDatabase(distroBot);
+        assertEquals(3, seeded.size());
+
+        // Insert a new pack at #1; the other three must shift down one number.
+        List<Pack> shifted = new LinkedList<>();
+        shifted.add(pack(1, "NEW Show - 00", "100M", 104857600L, 0));
+        shifted.add(pack(2, "Alpha - 01", "100M", 104857600L, 1));
+        shifted.add(pack(3, "Bravo - 02", "100M", 104857600L, 2));
+        shifted.add(pack(4, "Charlie - 03", "100M", 104857600L, 3));
+
+        dao.updateListing(distroBot, seeded, shifted);
+
+        List<Pack> fromDb = dao.getBotPackListFromDatabase(distroBot);
+        assertEquals(4, fromDb.size());
+        assertEquals("NEW Show - 00", nameOf(fromDb, 1));
+        assertEquals("Alpha - 01", nameOf(fromDb, 2));
+        assertEquals("Bravo - 02", nameOf(fromDb, 3));
+        assertEquals("Charlie - 03", nameOf(fromDb, 4));
+    }
+
+    private static String nameOf(List<Pack> packs, int number) {
+        return packs.stream().filter(p -> p.getNumber() == number).findFirst().orElseThrow().getName();
     }
 
     @Test

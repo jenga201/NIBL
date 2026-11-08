@@ -204,103 +204,154 @@ public class UpdatePackListDAO extends DataAccessObject {
     }
 
     /**
-     * Persist a new pack listing using the smallest possible set of statements.
-     * Packs are matched by {@code number} — the XDCC pack # and the table's
-     * natural key — so the {@code (bot_id, number)} unique index can never be
-     * violated mid-batch. Reorders are handled as in-place updates because
-     * {@link PackParseFunctions#packListChanged} preserves {@code last_modified}
-     * for unchanged content; unchanged packs are skipped entirely.
+     * Reconcile the bot's stored packs against a freshly parsed listing, matched
+     * by pack name (the stable file identity) rather than the XDCC number. A
+     * brand-new name is inserted, a vanished name is deleted, and any pack whose
+     * number, name, size, sizekbits or episode number changed is rewritten in
+     * full (number included), so a bot that renumbers/reorders its list is
+     * reflected exactly instead of drifting off by one.
+     * <p>
+     * Renumbering can violate the {@code (bot_id, number)} unique index when two
+     * rows swap or shift, so rows whose number is changing are first parked on
+     * the unique negative sentinel {@code number = -id}, then moved to their
+     * final number once the destination is free. The whole reconcile runs in one
+     * transaction and flushes write batches in chunks so a 220k-pack bot cannot
+     * exhaust the heap.
      */
     public void updateListing(AbstractDistroBot bot, List<Pack> oldListing, List<Pack> newListing) {
+        final int MAX_BATCH = 5000;
+        final String updateSql = "UPDATE " + _PACKS_TABLE + " SET number=?, name=?, size=?, sizekbits=?, episode_number=?, last_modified=? WHERE id=?";
+        final String renumberSql = "UPDATE " + _PACKS_TABLE + " SET number=? WHERE id=?";
+        final String insertSql = "INSERT INTO " + _PACKS_TABLE + " (bot_id, number, name, size, sizekbits, episode_number, last_modified) VALUES (?,?,?,?,?,?,?)";
+        final String deleteSql = "DELETE FROM " + _PACKS_TABLE + " WHERE id=?";
+        final String botUpdateSql = "UPDATE " + _BOTS_TABLE + " SET last_processed = NOW() WHERE id=?";
+
         try {
-            Map<Integer, Pack> oldByNumber = new HashMap<Integer, Pack>();
+            Map<String, Pack> oldByName = new HashMap<String, Pack>();
             for (Pack old : oldListing) {
-                oldByNumber.put(old.getNumber(), old);
+                oldByName.put(nameOf(old), old);
             }
 
-            HashSet<Integer> newNumbers = new HashSet<Integer>();
+            HashSet<String> newNames = new HashSet<String>();
             for (Pack pack : newListing) {
-                newNumbers.add(pack.getNumber());
+                newNames.add(nameOf(pack));
             }
-
-            String updateSql = "UPDATE " + _PACKS_TABLE + " SET name=?, size=?, sizekbits=?, episode_number=?, last_modified=? WHERE id=?";
-            String insertSql = "INSERT INTO " + _PACKS_TABLE + " (bot_id, number, name, size, sizekbits, episode_number, last_modified) VALUES (?,?,?,?,?,?,?)";
-            String deleteSql = "DELETE FROM " + _PACKS_TABLE + " WHERE id=?";
 
             try (Connection connection = getConnection();
                  PreparedStatement update = connection.prepareStatement(updateSql);
+                 PreparedStatement renumber = connection.prepareStatement(renumberSql);
                  PreparedStatement insert = connection.prepareStatement(insertSql);
-                 PreparedStatement delete = connection.prepareStatement(deleteSql)) {
+                 PreparedStatement delete = connection.prepareStatement(deleteSql);
+                 PreparedStatement botUpdate = connection.prepareStatement(botUpdateSql)) {
 
-                // rewriteBatchedStatements=true turns each batch into a single
-                // multi-value statement, which would exhaust the heap for a whole
-                // 220k-pack listing. Flush in chunks to keep each statement small.
-                final int MAX_BATCH = 5000;
-                int pending = 0;
+                connection.setAutoCommit(false);
+                try {
+                    int pending = 0;
 
-                for (Pack pack : newListing) {
-                    Pack old = oldByNumber.get(pack.getNumber());
-                    if (old == null) {
-                        insert.setInt(1, pack.getBotId());
-                        insert.setInt(2, pack.getNumber());
-                        insert.setString(3, pack.getName());
-                        insert.setString(4, pack.getSize());
-                        insert.setLong(5, pack.getSizeKBits());
-                        insert.setInt(6, pack.getEpisodeNumber());
-                        insert.setTimestamp(7, pack.getLastModified());
+                    // 1) Delete packs that vanished from the listing.
+                    for (Pack old : oldListing) {
+                        if (!newNames.contains(nameOf(old))) {
+                            delete.setInt(1, old.getId());
+                            delete.addBatch();
+                            if (++pending >= MAX_BATCH) {
+                                delete.executeBatch();
+                                pending = 0;
+                            }
+                        }
+                    }
+                    delete.executeBatch();
+                    pending = 0;
+
+                    // 2) Park rows whose number is changing on a unique negative
+                    //    sentinel so the (bot_id, number) index cannot collide.
+                    for (Pack pack : newListing) {
+                        Pack old = oldByName.get(nameOf(pack));
+                        if (old != null && old.getNumber() != pack.getNumber()) {
+                            renumber.setInt(1, -old.getId());
+                            renumber.setInt(2, old.getId());
+                            renumber.addBatch();
+                            if (++pending >= MAX_BATCH) {
+                                renumber.executeBatch();
+                                pending = 0;
+                            }
+                        }
+                    }
+                    renumber.executeBatch();
+                    pending = 0;
+
+                    // 3) Insert brand-new packs.
+                    for (Pack pack : newListing) {
+                        if (oldByName.containsKey(nameOf(pack))) {
+                            continue;
+                        }
+                        setInsertParams(insert, pack);
                         insert.addBatch();
-                        pending++;
-                    } else if (isChanged(old, pack)) {
-                        update.setString(1, pack.getName());
-                        update.setString(2, pack.getSize());
-                        update.setLong(3, pack.getSizeKBits());
-                        update.setInt(4, pack.getEpisodeNumber());
-                        update.setTimestamp(5, pack.getLastModified());
-                        update.setInt(6, old.getId());
-                        update.addBatch();
-                        pending++;
-                    }
-                    if (pending >= MAX_BATCH) {
-                        insert.executeBatch();
-                        update.executeBatch();
-                        delete.executeBatch();
-                        pending = 0;
-                    }
-                }
-
-                for (Pack old : oldListing) {
-                    if (!newNumbers.contains(old.getNumber())) {
-                        delete.setInt(1, old.getId());
-                        delete.addBatch();
-                        pending++;
-                        if (pending >= MAX_BATCH) {
+                        if (++pending >= MAX_BATCH) {
                             insert.executeBatch();
-                            update.executeBatch();
-                            delete.executeBatch();
                             pending = 0;
                         }
                     }
+                    insert.executeBatch();
+
+                    // 4) Rewrite matched packs whose row changed (number included).
+                    pending = 0;
+                    for (Pack pack : newListing) {
+                        Pack old = oldByName.get(nameOf(pack));
+                        if (old != null && isChanged(old, pack)) {
+                            setUpdateParams(update, pack, old.getId());
+                            update.addBatch();
+                            if (++pending >= MAX_BATCH) {
+                                update.executeBatch();
+                                pending = 0;
+                            }
+                        }
+                    }
+                    update.executeBatch();
+
+                    // Bump last_processed in the same transaction so cache
+                    // invalidation and the Meilisearch reader see an atomic change.
+                    botUpdate.setInt(1, bot.getId());
+                    botUpdate.executeUpdate();
+
+                    connection.commit();
+                } catch (SQLException e) {
+                    connection.rollback();
+                    throw e;
                 }
-
-                insert.executeBatch();
-                update.executeBatch();
-                delete.executeBatch();
-            }
-
-            // Bump last_processed so cache invalidation + warmers can see this
-            // bot changed. updateListing() only runs when packListChanged() was
-            // true, so a no-op reprocess leaves this (and the cache) untouched.
-            try (Connection connection = getConnection();
-                 Statement stmt = connection.createStatement()) {
-                stmt.executeUpdate("UPDATE " + _BOTS_TABLE + " SET last_processed = NOW() WHERE id = " + bot.getId());
             }
         } catch (SQLException e) {
             _myBot.getLogger().error("UpdatePackListDAO BotName: " + bot.getName(), e);
         }
     }
 
+    private static String nameOf(Pack pack) {
+        String name = pack.getName();
+        return name == null ? "" : name;
+    }
+
+    private static void setInsertParams(PreparedStatement insert, Pack pack) throws SQLException {
+        insert.setInt(1, pack.getBotId());
+        insert.setInt(2, pack.getNumber());
+        insert.setString(3, pack.getName());
+        insert.setString(4, pack.getSize());
+        insert.setLong(5, pack.getSizeKBits());
+        insert.setInt(6, pack.getEpisodeNumber());
+        insert.setTimestamp(7, pack.getLastModified());
+    }
+
+    private static void setUpdateParams(PreparedStatement update, Pack pack, int id) throws SQLException {
+        update.setInt(1, pack.getNumber());
+        update.setString(2, pack.getName());
+        update.setString(3, pack.getSize());
+        update.setLong(4, pack.getSizeKBits());
+        update.setInt(5, pack.getEpisodeNumber());
+        update.setTimestamp(6, pack.getLastModified());
+        update.setInt(7, id);
+    }
+
     private static boolean isChanged(Pack old, Pack pack) {
-        return !Objects.equals(old.getName(), pack.getName())
+        return old.getNumber() != pack.getNumber()
+                || !Objects.equals(old.getName(), pack.getName())
                 || !Objects.equals(old.getSize(), pack.getSize())
                 || !Objects.equals(old.getSizeKBits(), pack.getSizeKBits())
                 || old.getEpisodeNumber() != pack.getEpisodeNumber();
