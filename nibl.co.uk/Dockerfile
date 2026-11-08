@@ -65,7 +65,13 @@ RUN composer install \
 
 # The optimized autoloader is generated once the application source is present
 COPY . .
-RUN composer dump-autoload --no-interaction --no-dev --optimize --classmap-authoritative
+
+# package:discover (run by dump-autoload's post-autoload-dump) boots the app,
+# which needs a real view/cache storage path. var/ is excluded by
+# .dockerignore, so create the runtime dirs here rather than failing on
+# "Please provide a valid cache path".
+RUN mkdir -p var/framework/views var/framework/cache/data var/logs \
+    && composer dump-autoload --no-interaction --no-dev --optimize --classmap-authoritative
 
 ###############################################################################
 # final: runtime image
