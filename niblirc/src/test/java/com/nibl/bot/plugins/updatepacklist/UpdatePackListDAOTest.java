@@ -142,7 +142,49 @@ class UpdatePackListDAOTest {
     }
 
     @Test
-    void setStatusIdPersistsOfflineStatus() throws SQLException {
+        void fullReplacePreservesLastModifiedForRenumberedPacks() throws SQLException {
+            PackParseFunctions ppf = new PackParseFunctions(bot);
+            AbstractDistroBot distroBot = dao.getBotFromDatabase("FakeDistro");
+
+            Timestamp t1 = Timestamp.valueOf("2026-01-01 00:00:00");
+            Timestamp t2 = Timestamp.valueOf("2026-01-02 00:00:00");
+            Timestamp t3 = Timestamp.valueOf("2026-01-03 00:00:00");
+
+            List<Pack> oldList = new LinkedList<>();
+            oldList.add(new Pack(fakeBotId, 1, "FakeDistro", "Alpha - 01", "100M", 104857600L, 1, t1));
+            oldList.add(new Pack(fakeBotId, 2, "FakeDistro", "Bravo - 02", "100M", 104857600L, 2, t2));
+            oldList.add(new Pack(fakeBotId, 3, "FakeDistro", "Charlie - 03", "100M", 104857600L, 3, t3));
+            distroBot.setListing(new LinkedList<>(oldList));
+            dao.updateListing(distroBot, oldList);
+
+            // A new pack arrives at #1 and the other three shift down one number.
+            // A freshly parsed listing would timestamp every pack "now", so
+            // packListChanged must carry the original last_modified onto the shifted
+            // (unchanged content) packs; otherwise a whole-list replace re-dates
+            // them as brand new and floods the "latest" listing.
+            Timestamp fresh = Timestamp.valueOf("2026-02-01 00:00:00");
+            List<Pack> newList = new LinkedList<>();
+            newList.add(new Pack(fakeBotId, 1, "FakeDistro", "NEW Show - 00", "100M", 104857600L, 0, fresh));
+            newList.add(new Pack(fakeBotId, 2, "FakeDistro", "Alpha - 01", "100M", 104857600L, 1, fresh));
+            newList.add(new Pack(fakeBotId, 3, "FakeDistro", "Bravo - 02", "100M", 104857600L, 2, fresh));
+            newList.add(new Pack(fakeBotId, 4, "FakeDistro", "Charlie - 03", "100M", 104857600L, 3, fresh));
+
+            assertTrue(ppf.packListChanged(distroBot, newList));
+            dao.updateListing(distroBot, newList);
+
+            List<Pack> fromDb = dao.getBotPackListFromDatabase(distroBot);
+            assertEquals(t1.getTime(), lastModifiedOf(fromDb, "Alpha - 01").getTime());
+            assertEquals(t2.getTime(), lastModifiedOf(fromDb, "Bravo - 02").getTime());
+            assertEquals(t3.getTime(), lastModifiedOf(fromDb, "Charlie - 03").getTime());
+            assertEquals(fresh.getTime(), lastModifiedOf(fromDb, "NEW Show - 00").getTime());
+        }
+
+        private static Timestamp lastModifiedOf(List<Pack> packs, String name) {
+            return packs.stream().filter(p -> p.getName().equals(name)).findFirst().orElseThrow().getLastModified();
+        }
+
+        @Test
+        void setStatusIdPersistsOfflineStatus() throws SQLException {
         AbstractDistroBot distroBot = dao.getBotFromDatabase("FakeDistro");
         distroBot.setStatusId(0);
 
