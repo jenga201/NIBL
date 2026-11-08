@@ -79,7 +79,7 @@ class UpdatePackListDAOTest {
         listing.add(pack(3, "Show Three - 03", "9.1M", 9542041L, 3));
         distroBot.setListing(listing);
 
-        dao.updateListing(distroBot, dao.getBotPackListFromDatabase(distroBot), listing);
+                dao.updateListing(distroBot, listing);
 
         List<Pack> fromDb = dao.getBotPackListFromDatabase(distroBot);
         assertEquals(3, fromDb.size());
@@ -100,7 +100,7 @@ class UpdatePackListDAOTest {
         listing.add(pack(11, "Brand New Show - 11", "300M", 314572800L, 11));
         distroBot.setListing(listing);
 
-        dao.updateListing(distroBot, dao.getBotPackListFromDatabase(distroBot), listing);
+                dao.updateListing(distroBot, listing);
 
         List<Pack> fromDb = dao.getBotPackListFromDatabase(distroBot);
         assertEquals(2, fromDb.size(), "old packs must be deleted before the new listing is inserted");
@@ -116,7 +116,7 @@ class UpdatePackListDAOTest {
         existing.add(pack(1, "Alpha - 01", "100M", 104857600L, 1));
         existing.add(pack(2, "Bravo - 02", "100M", 104857600L, 2));
         existing.add(pack(3, "Charlie - 03", "100M", 104857600L, 3));
-        dao.updateListing(distroBot, dao.getBotPackListFromDatabase(distroBot), existing);
+        dao.updateListing(distroBot, existing);
         List<Pack> seeded = dao.getBotPackListFromDatabase(distroBot);
         assertEquals(3, seeded.size());
 
@@ -127,7 +127,7 @@ class UpdatePackListDAOTest {
         shifted.add(pack(3, "Bravo - 02", "100M", 104857600L, 2));
         shifted.add(pack(4, "Charlie - 03", "100M", 104857600L, 3));
 
-        dao.updateListing(distroBot, seeded, shifted);
+        dao.updateListing(distroBot, shifted);
 
         List<Pack> fromDb = dao.getBotPackListFromDatabase(distroBot);
         assertEquals(4, fromDb.size());
