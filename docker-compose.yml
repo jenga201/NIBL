@@ -332,7 +332,7 @@ services:
       # browser on the host can connect directly (8080 is Apache's loopback
       # port; production reaches Reverb via swag /app over the internal
       # network instead of this mapping).
-      - "127.0.0.1:${REVERB_HOST_PORT:-8081}:8080"
+      - "127.0.0.1:8081:8080"
     networks:
       - appnet
       - my-bridge
