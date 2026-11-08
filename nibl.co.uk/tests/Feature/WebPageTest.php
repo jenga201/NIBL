@@ -104,7 +104,7 @@ class WebPageTest extends TestCase
 
     public function test_packs_of_inactive_bots_are_not_listed(): void
     {
-        $inactive = $this->createBot('Dead|Bot', statusId: Bot::STATUS_ACTIVE + 1);
+        $inactive = $this->createBot('Dead|Bot', statusId: 0);
         $this->createPack($inactive, 1, '[Group] Dead Show - 01.mkv', modified: '2026-03-01 00:00:00');
 
         $this->get('/')->assertOk()->assertDontSee('[Group] Dead Show - 01.mkv');

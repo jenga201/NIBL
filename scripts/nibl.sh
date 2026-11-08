@@ -192,7 +192,7 @@ build_and_sync() {
   ssh "${SSH_OPTS[@]}" "$REMOTE_SSH" 'bash -s' "$REMOTE_DIR" <<'REMOTE_EOF'
 set -euo pipefail
 cd "$1"
-mkdir -p data/niblmysql data/nibl.co.uk data/niblirc data/swag data/meilisearch logs/niblmysql logs/nibl.co.uk logs/niblirc logs/swag
+mkdir -p data/niblmysql data/nibl.co.uk data/niblirc data/swag data/meilisearch data/redis logs/niblmysql logs/nibl.co.uk logs/niblirc logs/swag
 chown -R 1000:1000 data/niblmysql data/meilisearch logs/niblmysql
 
 # Create the shared external network now (after Docker IPv6 is enabled above) so

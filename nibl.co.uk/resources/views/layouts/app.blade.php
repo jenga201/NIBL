@@ -1,6 +1,12 @@
 @php
     $noJs = \App\Domain\JsMode::current()->isDisabled();
     $theme = \App\Domain\Theme::current();
+    $reverbConfig = [
+        'key' => config('broadcasting.connections.reverb.key'),
+        'host' => config('broadcasting.connections.reverb.options.host'),
+        'port' => (int) config('broadcasting.connections.reverb.options.port'),
+        'scheme' => config('broadcasting.connections.reverb.options.scheme'),
+    ];
 @endphp
 <!doctype html>
 <html lang="en" class="{{ $noJs && $theme->isDark() ? 'dark' : '' }}">
@@ -10,6 +16,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <meta name="description" content="nibl.co.uk provides direct access to large number of XDCC IRC Bots." />
     <title>@yield('title') | nibl.co.uk</title>
+    @livewireStyles
     @if ($noJs)
         @vite(['resources/css/app.css'])
     @else
@@ -17,6 +24,9 @@
             if (localStorage.darkMode === 'enabled' || (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 document.documentElement.classList.add('dark');
             }
+        </script>
+        <script>
+            window.niblReverb = @json($reverbConfig);
         </script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <noscript><meta http-equiv="refresh" content="0; url={{ route('site.js', 'off') }}"></noscript>
@@ -116,5 +126,9 @@
             @endif
         </div>
     </footer>
+
+    @if (! $noJs)
+        @livewireScripts
+    @endif
 </body>
 </html>

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\Bot;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\XdccData;
 use Tests\TestCase;
@@ -17,7 +16,7 @@ class BotApiTest extends TestCase
         $listed = $this->createBot('Listed|Bot');
         $this->createPack($listed, 1, '[Group] Listed Show - 01.mkv');
 
-        $inactive = $this->createBot('Inactive|Bot', statusId: 2);
+        $inactive = $this->createBot('Inactive|Bot', statusId: 0);
         $this->createPack($inactive, 1, '[Group] Inactive Show - 01.mkv');
 
         $this->createBot('Empty|Bot');
@@ -63,7 +62,7 @@ class BotApiTest extends TestCase
 
     public function test_inactive_bot_returns_not_found(): void
     {
-        $bot = $this->createBot('Gone|Bot', statusId: Bot::STATUS_ACTIVE + 1);
+        $bot = $this->createBot('Gone|Bot', statusId: 0);
         $this->createPack($bot, 1, '[Group] Gone Show - 01.mkv');
 
         $this->getJson('/api/bots/'.$bot->id)->assertNotFound();

@@ -111,8 +111,10 @@ class PackApiTest extends TestCase
             ->assertJsonPath('data.0.number', 1)
             ->assertJsonPath('data.1.number', 2)
             ->assertJsonPath('meta.total', 3)
-            ->assertJsonPath('meta.prev', null)
-            ->assertNotNull($next = $response->json('meta.next'));
+            ->assertJsonPath('meta.prev', null);
+
+        $next = $response->json('meta.next');
+        $this->assertNotNull($next);
 
         $this->getJson('/api/search/page?query=show&size=2&sort=number&direction=asc&cursor='.$next)
             ->assertOk()

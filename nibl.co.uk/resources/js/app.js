@@ -1,5 +1,22 @@
 import './bootstrap';
 import './home-copy';
+import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
+
+const reverb = window.niblReverb;
+
+if (reverb && reverb.key && reverb.host) {
+    window.Pusher = Pusher;
+    window.Echo = new Echo({
+        broadcaster: 'reverb',
+        key: reverb.key,
+        wsHost: reverb.host,
+        wsPort: reverb.port,
+        wssPort: reverb.port,
+        forceTLS: reverb.scheme === 'https',
+        enabledTransports: ['ws', 'wss'],
+    });
+}
 
 const showElem = (el) => {
     el.classList.remove('hidden');

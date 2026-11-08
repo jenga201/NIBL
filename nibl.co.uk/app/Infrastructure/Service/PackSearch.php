@@ -2,6 +2,7 @@
 
 namespace App\Infrastructure\Service;
 
+use App\Events\PacksUpdated;
 use App\Jobs\SyncBot;
 use App\Models\Bot;
 use App\Models\Pack;
@@ -43,9 +44,21 @@ final class PackSearch
         return (bool) config('meili.enabled');
     }
 
+    private ?Client $client = null;
+
+    /**
+     * Prefer a container-bound client so tests can inject a fake; otherwise
+     * build the real client from config lazily.
+     */
     private function client(): Client
     {
-        return new Client((string) config('meili.host'), config('meili.key'));
+        if ($this->client === null) {
+            $this->client = app()->bound(Client::class)
+                ? app(Client::class)
+                : new Client((string) config('meili.host'), config('meili.key'));
+        }
+
+        return $this->client;
     }
 
     private function index()
@@ -460,6 +473,10 @@ final class PackSearch
                 DB::table('meilisearch_sync')->where('bot_id', $botId)->delete();
                 $dispatched++;
             }
+        }
+
+        if ($dispatched > 0) {
+            PacksUpdated::dispatch();
         }
 
         return $dispatched;
