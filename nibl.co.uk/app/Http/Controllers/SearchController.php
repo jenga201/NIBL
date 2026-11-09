@@ -47,6 +47,6 @@ final class SearchController extends Controller
             $data['fuzzy'] = $fuzzy;
         }
 
-        return view('search', $data);
+        return $this->jsView('search', $data);
     }
 }

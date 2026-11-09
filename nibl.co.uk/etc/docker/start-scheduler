@@ -7,6 +7,9 @@ set -e
 # container owns migrations; this container depends on it being healthy).
 
 mkdir -p /var/www/html/var/framework/cache/data \
+         /var/www/html/var/framework/views \
+         /var/www/html/var/framework/sessions \
+         /var/www/html/var/framework/testing \
          /var/www/html/var/logs
 
 php /var/www/html/artisan config:cache || true

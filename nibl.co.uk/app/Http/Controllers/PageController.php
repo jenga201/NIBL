@@ -8,11 +8,11 @@ final class PageController extends Controller
 {
     public function about(): View
     {
-        return view('about');
+        return $this->jsView('about');
     }
 
     public function faq(): View
     {
-        return view('faq');
+        return $this->jsView('faq');
     }
 }

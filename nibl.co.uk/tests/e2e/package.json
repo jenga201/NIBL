@@ -1,0 +1,13 @@
+{
+  "name": "nibl-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Playwright E2E tests for the nibl.co.uk home-page live-update (Reverb) feature.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.1",
+    "mysql2": "^3.11.0"
+  }
+}

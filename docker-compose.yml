@@ -135,10 +135,12 @@ services:
       MEILI_ENABLED: "true"
       MEILI_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in .env}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:?Set REVERB_APP_KEY in .env}
+      REVERB_HOST: ${REVERB_HOST:-www.nibl.co.uk}
+      REVERB_PORT: ${REVERB_PORT:-443}
+      REVERB_SCHEME: ${REVERB_SCHEME:-https}
     expose:
       - "80"
-    ports:
-      - "127.0.0.1:${WEB_HTTP_PORT:-8080}:80"
     volumes:
       - ./data/nibl.co.uk:/var/www/html/var
       - ./logs/nibl.co.uk:/var/www/html/var/logs
@@ -268,11 +270,9 @@ services:
       REVERB_APP_ID: ${REVERB_APP_ID:?Set REVERB_APP_ID in .env}
       REVERB_APP_KEY: ${REVERB_APP_KEY:?Set REVERB_APP_KEY in .env}
       REVERB_APP_SECRET: ${REVERB_APP_SECRET:?Set REVERB_APP_SECRET in .env}
-      REVERB_HOST: ${REVERB_HOST:-www.nibl.co.uk}
-      REVERB_PORT: ${REVERB_PORT:-443}
-      REVERB_SCHEME: ${REVERB_SCHEME:-https}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REVERB_PUBLISH_HOST: reverb
+      REVERB_PUBLISH_PORT: 8080
+      REVERB_PUBLISH_SCHEME: http
     volumes:
       - ./data/nibl.scheduler:/var/www/html/var
       - ./logs/nibl.scheduler:/var/www/html/var/logs
@@ -327,12 +327,12 @@ services:
       REDIS_PORT: 6379
     expose:
       - "8080"
-    ports:
-      # Local-dev only: expose Reverb's websocket listener on loopback so a
-      # browser on the host can connect directly (8080 is Apache's loopback
-      # port; production reaches Reverb via swag /app over the internal
-      # network instead of this mapping).
-      - "127.0.0.1:8081:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/8080' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
     networks:
       - appnet
       - my-bridge

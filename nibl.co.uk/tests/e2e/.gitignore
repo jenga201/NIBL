@@ -1,0 +1,4 @@
+# Dependencies and generated output for the E2E test subproject.
+node_modules/
+test-results/
+playwright-report/

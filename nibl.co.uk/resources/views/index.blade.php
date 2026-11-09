@@ -1,7 +1,5 @@
 @extends('layouts.app')
 
-@php($noJs = \App\Domain\JsMode::current()->isDisabled())
-
 @section('title', 'Home')
 
 @section('header', 'Home')

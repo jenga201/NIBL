@@ -42,10 +42,10 @@ return [
             'secret' => env('REVERB_APP_SECRET'),
             'app_id' => env('REVERB_APP_ID'),
             'options' => [
-                'host' => env('REVERB_HOST'),
-                'port' => env('REVERB_PORT', 443),
-                'scheme' => env('REVERB_SCHEME', 'https'),
-                'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
+                'host' => env('REVERB_PUBLISH_HOST', 'reverb'),
+                'port' => env('REVERB_PUBLISH_PORT', 8080),
+                'scheme' => env('REVERB_PUBLISH_SCHEME', 'http'),
+                'useTLS' => false,
             ],
         ],
 

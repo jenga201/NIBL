@@ -2,7 +2,6 @@
 
 namespace App\Livewire;
 
-use App\Domain\JsMode;
 use App\Infrastructure\Service\PackService;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
@@ -16,7 +15,7 @@ use Livewire\Component;
  */
 final class LatestReleases extends Component
 {
-    #[On('echo:packs,PacksUpdated')]
+    #[On('echo:packs,.PacksUpdated')]
     public function refreshPacks(): void
     {
         // Re-render triggers a fresh latest() query in render().
@@ -26,7 +25,6 @@ final class LatestReleases extends Component
     {
         return view('livewire.latest-releases', [
             'latest' => $packService->latest(),
-            'noJs' => JsMode::current()->isDisabled(),
         ]);
     }
 }

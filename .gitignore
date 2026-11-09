@@ -52,7 +52,7 @@ data/niblirc/
 data/meilisearch/
 
 # swag's /config lives under data/swag/ and is regenerated on container init;
-# only the two custom reverse-proxy confs below are versioned. Ignore everything
+# only the custom reverse-proxy confs below are versioned. Ignore everything
 # else it creates (nginx/php/www base config, samples, certs, Let's Encrypt
 # accounts, geoip DB, fail2ban DB).
 data/swag/*
@@ -62,6 +62,7 @@ data/swag/nginx/*
 data/swag/nginx/proxy-confs/*
 !data/swag/nginx/proxy-confs/nibl.co.uk.subdomain.conf
 !data/swag/nginx/proxy-confs/www.nibl.co.uk.subdomain.conf
+!data/swag/nginx/proxy-confs/dev.nibl.co.uk.subdomain.conf
 
 # ============================================================================
 # Legacy runtime dirs from the pre-monorepo layout (kept until migrated/removed)

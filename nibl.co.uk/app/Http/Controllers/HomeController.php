@@ -15,7 +15,7 @@ final class HomeController extends Controller
             return view('legacy.news');
         }
 
-        return view('index', [
+        return $this->jsView('index', [
             'news' => $newsService->getLatestNews(),
         ]);
     }

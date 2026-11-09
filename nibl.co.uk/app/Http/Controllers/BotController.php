@@ -20,7 +20,7 @@ final class BotController extends Controller
     public function index(Request $request, BotService $botService, PackService $packService): View
     {
         if (! SiteView::fromCookie($request->cookie(SiteView::COOKIE))->isLegacy()) {
-            return view('bots', ['bots' => $botService->listAll()]);
+            return $this->jsView('bots', ['bots' => $botService->listAll()]);
         }
 
         return $this->legacyBots($request, $botService, $packService);
@@ -69,7 +69,7 @@ final class BotController extends Controller
             $data['fuzzy'] = $fuzzy;
         }
 
-        return view('bot', $data);
+        return $this->jsView('bot', $data);
     }
 
     private function legacyBots(Request $request, BotService $botService, PackService $packService): View

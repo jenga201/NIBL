@@ -21,6 +21,15 @@ final class SetHttpCacheHeaders
         /** @var Response $response */
         $response = $next($request);
 
+        // Livewire pages set their own "don't cache" policy (back/forward-cache
+        // safety) via DisableBackButtonCacheMiddleware. Adding an ETag and a
+        // `public` directive here would create a contradictory Cache-Control,
+        // so leave those responses untouched.
+        $content = $response->getContent();
+        if (is_string($content) && str_contains($content, 'wire:snapshot')) {
+            return $response;
+        }
+
         $response->setVary('Cookie', false);
 
         if ($response->isRedirection()) {
