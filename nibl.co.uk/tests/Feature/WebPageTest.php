@@ -83,6 +83,12 @@ class WebPageTest extends TestCase
             ->assertSee('AdiIRC')
             ->assertSee('Top Pick')
             ->assertSee('https://www.adiirc.com/', false)
+            ->assertSee('ZoiteChat')
+            ->assertSee('https://zoitechat.org/download.php', false)
+            ->assertSee('Halloy')
+            ->assertSee('https://halloy.chat/', false)
+            ->assertDontSee('mIRC')
+            ->assertDontSee('https://hexchat.github.io/', false)
             ->assertDontSee('The Lounge')
             ->assertSee('irc.rizon.net')
             ->assertSee('/msg BotName xdcc send #N');

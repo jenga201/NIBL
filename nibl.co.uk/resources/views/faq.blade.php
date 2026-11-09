@@ -19,7 +19,7 @@
                                 <tr>
                                     <td class="py-3 pr-5 align-top font-semibold">
                                         <span class="relative inline-flex pr-5" title="Top Pick">
-                                            AdiIRC
+                                            <a class="underline" href="https://zoitechat.org/download.php" target="_blank" rel="noopener">ZoiteChat</a>
                                             <span class="absolute top-0.5 right-0.5 grid min-h-[24px] min-w-[24px] translate-x-2/4 -translate-y-2/4 place-items-center rounded-full border border-white bg-green-600 px-1 py-1 text-xs text-white">
                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="h-3.5 w-3.5" aria-hidden="true">
                                                     <path fill-rule="evenodd" d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z" clip-rule="evenodd" />
@@ -28,32 +28,26 @@
                                             </span>
                                         </span>
                                     </td>
-                                    <td class="py-3 pr-4 align-top whitespace-nowrap"><a class="underline" href="https://www.adiirc.com/" target="_blank" rel="noopener">adiirc.com</a></td>
+                                    <td class="py-3 align-top text-gray-600 dark:text-gray-300">Windows, Linux, macOS — free, open-source successor to HexChat with solid DCC support.</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 pr-5 align-top font-semibold"><a class="underline" href="https://www.adiirc.com/" target="_blank" rel="noopener">AdiIRC</a></td>
                                     <td class="py-3 align-top text-gray-600 dark:text-gray-300">Windows — feature-rich client with a familiar interface and solid DCC support.</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-3 pr-5 align-top font-semibold">mIRC</td>
-                                    <td class="py-3 pr-4 align-top whitespace-nowrap"><a class="underline" href="https://www.mirc.com/" target="_blank" rel="noopener">mirc.com</a></td>
-                                    <td class="py-3 align-top text-gray-600 dark:text-gray-300">Windows — the classic client, with extensive scripting and DCC support; paid (not free).</td>
+                                    <td class="py-3 pr-5 align-top font-semibold"><a class="underline" href="https://halloy.chat/" target="_blank" rel="noopener">Halloy</a></td>
+                                    <td class="py-3 align-top text-gray-600 dark:text-gray-300">Windows, Linux, macOS — modern, free, and open-source.</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-3 pr-5 align-top font-semibold">HexChat</td>
-                                    <td class="py-3 pr-4 align-top whitespace-nowrap"><a class="underline" href="https://hexchat.github.io/" target="_blank" rel="noopener">hexchat.github.io</a></td>
-                                    <td class="py-3 align-top text-gray-600 dark:text-gray-300">Windows, Linux, macOS — free, open-source, and easy to set up.</td>
-                                </tr>
-                                <tr>
-                                    <td class="py-3 pr-5 align-top font-semibold">WeeChat</td>
-                                    <td class="py-3 pr-4 align-top whitespace-nowrap"><a class="underline" href="https://weechat.org/" target="_blank" rel="noopener">weechat.org</a></td>
+                                    <td class="py-3 pr-5 align-top font-semibold"><a class="underline" href="https://weechat.org/" target="_blank" rel="noopener">WeeChat</a></td>
                                     <td class="py-3 align-top text-gray-600 dark:text-gray-300">Terminal — lightweight and highly scriptable.</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-3 pr-5 align-top font-semibold">irssi</td>
-                                    <td class="py-3 pr-4 align-top whitespace-nowrap"><a class="underline" href="https://irssi.org/" target="_blank" rel="noopener">irssi.org</a></td>
+                                    <td class="py-3 pr-5 align-top font-semibold"><a class="underline" href="https://irssi.org/" target="_blank" rel="noopener">irssi</a></td>
                                     <td class="py-3 align-top text-gray-600 dark:text-gray-300">Terminal — fast and keyboard-driven for power users.</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-3 pr-5 align-top font-semibold">KiwiIRC</td>
-                                    <td class="py-3 pr-4 align-top whitespace-nowrap"><a class="underline" href="https://kiwiirc.com/nextclient/" target="_blank" rel="noopener">kiwiirc.com</a></td>
+                                    <td class="py-3 pr-5 align-top font-semibold"><a class="underline" href="https://kiwiirc.com/nextclient/" target="_blank" rel="noopener">KiwiIRC</a></td>
                                     <td class="py-3 align-top text-gray-600 dark:text-gray-300">Web — no installation required.</td>
                                 </tr>
                             </tbody>
