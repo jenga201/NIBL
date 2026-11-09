@@ -6,6 +6,7 @@ import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -137,7 +138,7 @@ public class PackParseFunctions extends BotExtend {
             if (output.size() == 0) {
                 _myBot.getLogger().warn("Not able to find packs using declared parser. Attempting others...");
             } else {
-                return output;
+                return dedupeDuplicateFilenames(output);
             }
         } catch (Exception e) {
             // New bots with parser unknown will throw an error here. Ignore it and allow testing of other parsers.
@@ -152,7 +153,7 @@ public class PackParseFunctions extends BotExtend {
             if (output.size() > 0) {
                 _myBot.getLogger().info("Found packs using parser " + parser._parserId + ".");
                 bot.setParserId(parser._parserId);
-                return output;
+                return dedupeDuplicateFilenames(output);
             }
         }
         _myBot.getLogger().error("No packs found after trying all parsers");
@@ -217,6 +218,30 @@ public class PackParseFunctions extends BotExtend {
     private static String packName(Pack pack) {
         String name = pack.getName();
         return name == null ? "" : name;
+    }
+
+    /**
+     * Collapse duplicate filenames. A bot may legitimately list the same file
+     * under several XDCC numbers (e.g. a truncated copy alongside the real
+     * one), so keep one entry per filename: the largest size, dropping exact
+     * name+size duplicates too. The winning Pack is returned whole, so its
+     * XDCC number, name and size stay paired. Insertion order is preserved.
+     */
+    static LinkedList<Pack> dedupeDuplicateFilenames(List<Pack> packs) {
+        Map<String, Pack> byName = new LinkedHashMap<>();
+        for (Pack pack : packs) {
+            String name = packName(pack);
+            Pack existing = byName.get(name);
+            if (existing == null || sizeKBits(pack) > sizeKBits(existing)) {
+                byName.put(name, pack);
+            }
+        }
+        return new LinkedList<>(byName.values());
+    }
+
+    private static long sizeKBits(Pack pack) {
+        Long bits = pack.getSizeKBits();
+        return bits == null ? 0L : bits;
     }
 
 }

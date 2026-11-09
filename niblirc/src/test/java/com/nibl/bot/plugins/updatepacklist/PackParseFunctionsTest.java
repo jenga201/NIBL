@@ -138,4 +138,33 @@ class PackParseFunctionsTest {
         assertEquals(PackParseFunctions.Parser.PARSER_DINOEX, PackParseFunctions.Parser.PARSER_NULL.getParserById(2));
         assertEquals(PackParseFunctions.Parser.PARSER_NULL, PackParseFunctions.Parser.PARSER_NULL.getParserById(99));
     }
+
+    @Test
+    void dedupeDuplicateFilenamesKeepsLargestAndItsNumber() {
+        Pack small = ppf.buildPack(sizeBot, 8956, "Gintama.mkv", "2.6G");
+        Pack large = ppf.buildPack(sizeBot, 9055, "Gintama.mkv", "2.9G");
+        Pack other = ppf.buildPack(sizeBot, 9056, "Other.mkv", "1.0G");
+
+        List<Pack> result = PackParseFunctions.dedupeDuplicateFilenames(
+                new LinkedList<>(List.of(small, large, other)));
+
+        assertEquals(2, result.size());
+        assertEquals(9055, result.get(0).getNumber(), "the surviving duplicate keeps its own XDCC number");
+        assertEquals("Gintama.mkv", result.get(0).getName());
+        assertEquals("2.9G", result.get(0).getSize());
+        assertEquals(9056, result.get(1).getNumber());
+        assertEquals("Other.mkv", result.get(1).getName());
+    }
+
+    @Test
+    void dedupeDuplicateFilenamesCollapsesExactNameAndSizeDuplicates() {
+        Pack one = ppf.buildPack(sizeBot, 10, "Show.mkv", "1.2G");
+        Pack two = ppf.buildPack(sizeBot, 11, "Show.mkv", "1.2G");
+
+        List<Pack> result = PackParseFunctions.dedupeDuplicateFilenames(
+                new LinkedList<>(List.of(one, two)));
+
+        assertEquals(1, result.size());
+        assertEquals(10, result.get(0).getNumber(), "first entry wins when name and size tie");
+    }
 }
