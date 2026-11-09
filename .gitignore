@@ -50,6 +50,7 @@ data/niblmysql/
 data/nibl.co.uk/
 data/niblirc/
 data/meilisearch/
+data/redis/
 
 # swag's /config lives under data/swag/ and is regenerated on container init;
 # only the custom reverse-proxy confs below are versioned. Ignore everything
