@@ -200,6 +200,10 @@ chown -R 1000:1000 data/niblmysql data/meilisearch logs/niblmysql
 docker network ls --format '{{.Name}}' | grep -qx my-bridge \
   || docker network create -d bridge my-bridge
 
+# Pull floating registry images (mysql/swag/meilisearch/redis) to their latest
+# tag before rebuilding build-based services (whose `--pull` refreshes bases).
+docker compose pull < /dev/null
+
 docker compose build --pull < /dev/null
 
 # Bring MySQL up first, then provision the app user before anything touches the
@@ -445,6 +449,25 @@ REMOTE_EOF
 # ---------------------------------------------------------------------------
 # Main loop
 # ---------------------------------------------------------------------------
+
+# Optional single-action invocation for scripts:
+#   bash nibl.sh rebuild
+# With no argument, the interactive menu runs as before.
+if [ $# -gt 0 ]; then
+  case "$1" in
+    deploy)      ( set -euo pipefail; deploy ) ;;
+    rebuild)     ( set -euo pipefail; rebuild ) ;;
+    diagnostics) ( set -euo pipefail; diagnostics ) ;;
+    prune)       ( set -euo pipefail; prune ) ;;
+    logs)        logs ;;
+    sql)         sql ;;
+    *)
+      printf 'Usage: %s [deploy|rebuild|diagnostics|prune|logs|sql]\n' "$0" >&2
+      exit 2
+      ;;
+  esac
+  exit $?
+fi
 
 while :; do
   menu_title
