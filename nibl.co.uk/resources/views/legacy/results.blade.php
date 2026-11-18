@@ -22,11 +22,29 @@
         @elseif ($results === null || count($results) === 0)
             <div class="title">No packs found!</div>
         @else
-            <div class="title">{{ count($results) }} pack{{ count($results) !== 1 ? 's' : '' }} found
-                @if ($bot)on {{ $bot->getName() }}@endif
-                @if ($searchQuery) matching "{{ $searchQuery }}"@endif:</div>
+            @php $packCount = $total ?? count($results); @endphp
+            @if ($bot)
+                <div class="botinfo">
+                    <span class="botname">{{ $bot->getName() }}</span>
+                    <span class="packcount">{{ $packCount }} pack{{ $packCount !== 1 ? 's' : '' }}</span>
+                </div>
+            @else
+                <div class="title">{{ $packCount }} pack{{ $packCount !== 1 ? 's' : '' }} found
+                    @if ($searchQuery) matching "{{ $searchQuery }}"@endif:</div>
+            @endif
         @endif
     </div>
+
+    @if ($bot && (($hasPrev ?? false) || ($hasNext ?? false)))
+        @include('legacy.pagination', [
+            'bot' => $bot,
+            'searchQuery' => $searchQuery,
+            'page' => $page,
+            'hasPrev' => $hasPrev,
+            'hasNext' => $hasNext,
+            'lastPage' => $lastPage,
+        ])
+    @endif
 
     <table class="botlist">
         <tr class="nowrap">
@@ -53,6 +71,17 @@
             </tr>
         @endforeach
     </table>
+
+    @if ($bot && (($hasPrev ?? false) || ($hasNext ?? false)))
+        @include('legacy.pagination', [
+            'bot' => $bot,
+            'searchQuery' => $searchQuery,
+            'page' => $page,
+            'hasPrev' => $hasPrev,
+            'hasNext' => $hasNext,
+            'lastPage' => $lastPage,
+        ])
+    @endif
 </div>
 @endsection
 

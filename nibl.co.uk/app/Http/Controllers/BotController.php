@@ -94,12 +94,22 @@ final class BotController extends Controller
             $query = QueryDto::fromRequest(['query' => $search ?? '']);
             $vague = $search !== null && trim((string) $search) !== '' && ! $query->isValid();
 
-            $results = $query->isValid()
-                ? $packService->searchInBot($bot, BotQueryDto::fromRequest(['query' => $search]))
-                : $packService->latestBotPacks($bot, BotQueryDto::fromRequest([]));
+            $botQuery = BotQueryDto::fromRequest([
+                'query' => $search ?? '',
+                'page' => $request->query('page'),
+            ]);
+
+            $result = $query->isValid()
+                ? $packService->searchInBot($bot, $botQuery)
+                : $packService->latestBotPacks($bot, $botQuery);
 
             return view('legacy.results', [
-                'results' => $results,
+                'results' => $result['packs'],
+                'total' => $result['total'],
+                'page' => $result['page'],
+                'hasPrev' => $result['hasPrev'],
+                'hasNext' => $result['hasNext'],
+                'lastPage' => $result['lastPage'],
                 'bot' => $bot,
                 'searchQuery' => $search,
                 'searchQueryVague' => $vague,

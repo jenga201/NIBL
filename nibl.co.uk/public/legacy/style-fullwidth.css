@@ -296,6 +296,52 @@ div.bots table.botlist tr.last td.filename {
 	-moz-border-radius-bottomright: 4px;
 }
 
+/*** PACK LIST PAGINATION ******************************************************/
+
+div.bots div.pagination {
+    max-width: 42rem;
+    margin: 0.5em auto;
+    text-align: center;
+}
+div.bots div.pagination a,
+div.bots div.pagination span {
+    display: inline-block;
+    padding: 0.35em 0.9em;
+    border-radius: 9999px;
+    margin: 0.15em;
+    font-size: 0.85em;
+    vertical-align: middle;
+}
+div.bots div.pagination a {
+    background-color: #f2d391;
+    color: #3e69cc;
+    border: 1px solid #cbab6c;
+    text-decoration: none;
+}
+div.bots div.pagination a:hover {
+    background-color: #fddc98;
+    text-decoration: none;
+}
+div.bots div.pagination span.nav {
+    background-color: #f1e4c4;
+    color: #b4a37a;
+    border: 1px solid #ddd0ac;
+}
+div.bots div.pagination span.page {
+    background-color: transparent;
+    color: #4a402b;
+    font-weight: bold;
+}
+
+div.bots div.botsheader div.botinfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+div.bots div.botsheader div.botinfo span.botname {
+    font-weight: bold;
+}
+
 div#footer {
 clear: both;
 dmargin-top: 0.5em;
